@@ -28,6 +28,14 @@
 	<script src="../libs/jstree/jstree.js"></script>
 	<script src="../build/potree/potree.js"></script>
 	<script src="../libs/plasio/js/laslaz.js"></script>
+
+	<script src='../libs/sql.js/sql-wasm.js'></script>
+	<script src='../libs/geopackage/geopackage.js'></script>
+	<script src="../libs/three.js/extra/lines/LineSegmentsGeometry.js"></script>
+	<script src="../libs/three.js/extra/lines/LineGeometry.js"></script>
+	<script src="../libs/three.js/extra/lines/LineMaterial.js"></script>
+	<script src="../libs/three.js/extra/lines/LineSegments2.js"></script>
+	<script src="../libs/three.js/extra/lines/Line2.js"></script>
 	
 	<!-- INCLUDE ADDITIONAL DEPENDENCIES HERE -->
 	<!-- INCLUDE SETTINGS HERE -->
@@ -43,91 +51,38 @@
 		
 		viewer.setEDLEnabled(true);
 		viewer.setFOV(60);
-		viewer.setPointBudget(2*1000*1000);
+		viewer.setPointBudget(5 * 1000 * 1000);
 		viewer.loadSettingsFromURL();
-
-		viewer.setDescription('Streaming point clouds from an <a href="https://entwine.io/" target="_blank">Entwine</a> backend.');
-
+		
+		viewer.setDescription("");
+		
 		viewer.loadGUI(() => {
 			viewer.setLanguage('en');
-			$("#menu_appearance").next().show();
+			//$("#menu_appearance").next().show();
+			//$("#menu_tools").next().show();
 			$("#menu_scene").next().show();
+			$("#menu_filters").next().show();
 			viewer.toggleSidebar();
 		});
+		
+		// Sigeom
+		Potree.loadPointCloud("http://5.9.65.151/mschuetz/potree/resources/pointclouds/opentopography/CA13_1.4/cloud.js", "CA13", function(e){
+			viewer.scene.addPointCloud(e.pointcloud);
+			e.pointcloud.position.z = 0;
+			let material = e.pointcloud.material;
+			material.size = 1;
+			material.pointSizeType = Potree.PointSizeType.FIXED;
+			material.activeAttributeName = "classification";
+			material.elevationRange = [10, 20];
+			
+			viewer.scene.view.position.set(694991.9150582966, 3916274.3733733483, 76.41774609890476);
+			viewer.scene.view.lookAt(694878.4097257275, 3916332.0674868184, 14.497470898558227);
 
-		var getQueryParam = function(name) {
-			name = name.replace(/[\[\]]/g, "\\$&");
-			var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
-				results = regex.exec(window.location.href);
-			if (!results || !results[2]) return null;
-			return decodeURIComponent(results[2].replace(/\+/g, " "));
-		}
-
-		{
-			var server = "greyhound://cache.greyhound.io/resource/";
-
-			/* Some current public resources:
-				autzen
-				half-dome
-				iowa
-				iowa-bridge
-				iowa-city
-				lake-isabella
-				lone-star
-				nyc
-				nz
-				red-rocks
-				sncf
-				space-shuttle
-				st-helens
-				vanuatu-village
-			*/
-			
-			var resource = "autzen";
-			
-			
-			//
-			// Some recommended configurations:
-			//
-			
-			//var resource = "iowa-bridge";
-			//viewer.setMaterial("Intensity");
-			//viewer.setIntensityRange(0, 65536);
-			//viewer.setIntensityBrightness(0.2);
-			
-			//var resource = "iowa-city";
-			//viewer.setMaterial("Intensity");
-			
-			//var resource = "lake-isabella";
-			//viewer.setMaterial("Intensity");
-			//viewer.setIntensityGamma(0.5);
-			
-			//var resource = "space-shuttle";
-			//viewer.setMaterial("Intensity");
-			//viewer.setIntensityRange(0, 4500);
-			//viewer.setIntensityGamma(1.5);
-			
-			
-			
-
-			if (getQueryParam("server")) {
-				server = getQueryParam("server");
-			}
-			if (getQueryParam("resource")) {
-				resource = getQueryParam("resource");
-			}
-
-			Potree.loadPointCloud(server + resource + "/", "autzen", (e) => {
-				viewer.scene.addPointCloud(e.pointcloud);
-				e.pointcloud.material.pointSizeType = Potree.PointSizeType.ADAPTIVE;
-				e.pointcloud.material.size = 0.6;
-
-				viewer.fitToScreen(0.5);
-			});
-		}
-
+			//viewer.fitToScreen();
+		});
+		
 	</script>
-
-
+	
+	
   </body>
 </html>
