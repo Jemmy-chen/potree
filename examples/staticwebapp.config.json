@@ -1,0 +1,6 @@
+{
+  "navigationFallback": {
+    "rewrite": "/viewer.html",
+    "exclude": ["/api/*"]
+  }
+}
