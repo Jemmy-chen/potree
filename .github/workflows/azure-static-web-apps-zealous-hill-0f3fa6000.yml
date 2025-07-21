@@ -31,7 +31,7 @@ jobs:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_ZEALOUS_HILL_0F3FA6000 }}
           action: "upload"
           app_location: "examples"
-          output_location: "dist"
+          output_location: "examples"
           api_location: ""
 
   close_pull_request_job:
