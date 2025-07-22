@@ -1,6 +1,11 @@
 {
+  "mimeTypes": {
+    ".js": "application/javascript",
+    ".css": "text/css",
+    ".wasm": "application/wasm"
+  },
   "navigationFallback": {
-    "rewrite": "/viewer.html",
-    "exclude": ["/api/*"]
+    "rewrite": "index.html",
+    "exclude": ["/libs/*", "/thumbnails/*", "/page.json"]
   }
 }
