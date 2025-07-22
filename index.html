@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Potree Example Browser</title>
+  <title>BHS Potree</title>
   
   <!-- Stylesheets -->
   <link rel="stylesheet" href="libs/jquery-ui/jquery-ui.min.css" />
@@ -12,11 +12,19 @@
   <link rel="stylesheet" href="build/potree/potree.css" />
   
   <style>
+    /* Box sizing to include padding/border in width calculations */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
     /* Ensure html and body take full height and allow vertical scrolling */
     html, body {
       height: 100%;
       margin: 0;
       overflow-y: auto;
+      overflow-x: hidden; /* prevent horizontal scroll */
     }
 
     body {
@@ -24,6 +32,13 @@
       background-color: #f4f4f4;
       padding: 2rem;
       min-height: 100vh;
+    }
+
+    /* Main content container with max width and horizontal centering */
+    #content {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1rem;
     }
 
     h2 {
@@ -47,6 +62,7 @@
       overflow: hidden;
       text-align: center;
       transition: transform 0.2s;
+      margin-bottom: 1rem; /* some vertical spacing */
     }
 
     .example:hover {
@@ -72,7 +88,7 @@
   </style>
 </head>
 <body>
-  <h2>Potree Examples</h2>
+  <h2>Potree 3D Viewer List</h2>
   <div id="content"></div>
 
   <!-- Scripts -->
