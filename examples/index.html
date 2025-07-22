@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Potree Example Browser</title>
   <style>
     body {
@@ -61,7 +61,8 @@
   <div id="content"></div>
 
   <script>
-    fetch("page.json")
+    // Fetch page.json from one folder up (root)
+    fetch("../page.json")
       .then(response => response.json())
       .then(data => {
         const content = document.getElementById("content");
@@ -82,11 +83,13 @@
             div.className = "example";
 
             const a = document.createElement("a");
-            a.href = example.url;
+            // Fix URL paths - examples are relative to root, so prefix with ../
+            a.href = "../" + example.url;
             a.title = example.label || example.url;
 
             const img = document.createElement("img");
-            img.src = example.thumb;
+            // Fix thumbnail path too (usually thumbnails/ is at root)
+            img.src = "../" + example.thumb;
             img.alt = example.label || example.url;
 
             const label = document.createElement("div");
