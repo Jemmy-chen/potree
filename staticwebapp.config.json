@@ -1,0 +1,16 @@
+{
+  "routes": [
+    {
+      "route": "/libs/*",
+      "serve": "/libs/"
+    },
+    {
+      "route": "/build/*",
+      "serve": "/build/"
+    },
+    {
+      "route": "/examples/*",
+      "serve": "/examples/"
+    }
+  ]
+}
