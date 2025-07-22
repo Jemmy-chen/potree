@@ -12,11 +12,18 @@
   <link rel="stylesheet" href="build/potree/potree.css" />
   
   <style>
+    /* Ensure html and body take full height and allow vertical scrolling */
+    html, body {
+      height: 100%;
+      margin: 0;
+      overflow-y: auto;
+    }
+
     body {
       font-family: sans-serif;
       background-color: #f4f4f4;
-      margin: 0;
       padding: 2rem;
+      min-height: 100vh;
     }
 
     h2 {
@@ -83,53 +90,53 @@
   <script src="build/potree/potree.js"></script>
   <script type="module" src="libs/three.js/build/three.module.js"></script>
 
- <script>
-  // Fetch page.json from the /examples folder
-  fetch("examples/page.json")
-    .then(response => response.json())
-    .then(data => {
-      const content = document.getElementById("content");
+  <script>
+    // Fetch page.json from the /examples folder
+    fetch("examples/page.json")
+      .then(response => response.json())
+      .then(data => {
+        const content = document.getElementById("content");
 
-      for (const [section, examples] of Object.entries(data)) {
-        const sectionDiv = document.createElement("div");
-        sectionDiv.className = "section";
+        for (const [section, examples] of Object.entries(data)) {
+          const sectionDiv = document.createElement("div");
+          sectionDiv.className = "section";
 
-        const title = document.createElement("h3");
-        title.textContent = section;
-        sectionDiv.appendChild(title);
+          const title = document.createElement("h3");
+          title.textContent = section;
+          sectionDiv.appendChild(title);
 
-        const grid = document.createElement("div");
-        grid.className = "grid";
+          const grid = document.createElement("div");
+          grid.className = "grid";
 
-        examples.forEach(example => {
-          const div = document.createElement("div");
-          div.className = "example";
+          examples.forEach(example => {
+            const div = document.createElement("div");
+            div.className = "example";
 
-          const a = document.createElement("a");
-          a.href = "examples/" + example.url;
-          a.title = example.label || example.url;
+            const a = document.createElement("a");
+            a.href = "examples/" + example.url;
+            a.title = example.label || example.url;
 
-          const img = document.createElement("img");
-          img.src = "examples/" + example.thumb;
-          img.alt = example.label || example.url;
+            const img = document.createElement("img");
+            img.src = "examples/" + example.thumb;
+            img.alt = example.label || example.url;
 
-          const label = document.createElement("div");
-          label.textContent = example.label || example.url;
+            const label = document.createElement("div");
+            label.textContent = example.label || example.url;
 
-          a.appendChild(img);
-          a.appendChild(label);
-          div.appendChild(a);
-          grid.appendChild(div);
-        });
+            a.appendChild(img);
+            a.appendChild(label);
+            div.appendChild(a);
+            grid.appendChild(div);
+          });
 
-        sectionDiv.appendChild(grid);
-        content.appendChild(sectionDiv);
-      }
-    })
-    .catch(error => {
-      document.getElementById("content").textContent = "Failed to load examples.";
-      console.error("Error loading page.json:", error);
-    });
-</script>
+          sectionDiv.appendChild(grid);
+          content.appendChild(sectionDiv);
+        }
+      })
+      .catch(error => {
+        document.getElementById("content").textContent = "Failed to load examples.";
+        console.error("Error loading page.json:", error);
+      });
+  </script>
 </body>
 </html>
