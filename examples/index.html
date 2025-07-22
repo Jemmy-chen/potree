@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <title>Potree Example Browser</title>
-
-  <!-- CSS files with correct relative paths -->
+  
+  <!-- Stylesheets -->
   <link rel="stylesheet" href="../libs/jquery-ui/jquery-ui.min.css" />
   <link rel="stylesheet" href="../libs/openlayers3/ol.css" />
   <link rel="stylesheet" href="../libs/jstree/themes/mixed/style.css" />
   <link rel="stylesheet" href="../libs/spectrum/spectrum.css" />
   <link rel="stylesheet" href="../build/potree/potree.css" />
-
+  
   <style>
     body {
       font-family: sans-serif;
@@ -68,23 +68,23 @@
   <h2>Potree Examples</h2>
   <div id="content"></div>
 
+  <!-- Scripts -->
   <script src="../libs/jquery/jquery-3.1.1.min.js"></script>
   <script src="../libs/jquery-ui/jquery-ui.min.js"></script>
   <script src="../libs/spectrum/spectrum.js"></script>
   <script src="../libs/proj4/proj4.js"></script>
+  <script src="../libs/openlayers3/ol.js"></script>
+  <script src="../libs/other/BinaryHeap.js"></script>
   <script src="../libs/i18next/i18next.js"></script>
   <script src="../libs/d3/d3.js"></script>
   <script src="../libs/plasio/js/laslaz.js"></script>
-  <script src="../libs/jstree/jstree.js"></script>
   <script src="../libs/tween/tween.min.js"></script>
-  <script src="../libs/openlayers3/ol.js"></script>
-  <script src="../libs/other/BinaryHeap.js"></script>
+  <script src="../libs/jstree/jstree.js"></script>
   <script src="../build/potree/potree.js"></script>
-  <script type="module" src="../libs/three.js/build/three.module.js"></script>
+  <script src="../libs/three.js/build/three.module.js" type="module"></script>
 
   <script>
-    // Fetch page.json from one folder up (root)
-    fetch("../page.json")
+    fetch("page.json")
       .then(response => response.json())
       .then(data => {
         const content = document.getElementById("content");
@@ -94,4 +94,41 @@
           sectionDiv.className = "section";
 
           const title = document.createElement("h3");
-          title.textContent = s
+          title.textContent = section;
+          sectionDiv.appendChild(title);
+
+          const grid = document.createElement("div");
+          grid.className = "grid";
+
+          examples.forEach(example => {
+            const div = document.createElement("div");
+            div.className = "example";
+
+            const a = document.createElement("a");
+            a.href = "../" + example.url; // assets are relative to root
+            a.title = example.label || example.url;
+
+            const img = document.createElement("img");
+            img.src = "../" + example.thumb;
+            img.alt = example.label || example.url;
+
+            const label = document.createElement("div");
+            label.textContent = example.label || example.url;
+
+            a.appendChild(img);
+            a.appendChild(label);
+            div.appendChild(a);
+            grid.appendChild(div);
+          });
+
+          sectionDiv.appendChild(grid);
+          content.appendChild(sectionDiv);
+        }
+      })
+      .catch(error => {
+        document.getElementById("content").textContent = "Failed to load examples.";
+        console.error("Error loading page.json:", error);
+      });
+  </script>
+</body>
+</html>
