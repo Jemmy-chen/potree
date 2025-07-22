@@ -39,7 +39,7 @@ jobs:
           action: "upload"
           app_location: "."              # folder with index.html
           api_location: ""               # no API
-          output_location: "examples"           # same as app_location
+          output_location: "."           # same as app_location
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
