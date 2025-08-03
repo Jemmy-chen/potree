@@ -1,9 +1,7 @@
-
 const path = require('path');
 const fs = require("fs");
 const fsp = fs.promises;
 const JSON5 = require('json5');
-
 
 async function createExamplesPage(){
 
@@ -14,18 +12,17 @@ async function createExamplesPage(){
 
 	let unhandledCode = ``;
 	let exampleCode = ``;
-	let showcaseCode = ``;
-	let thirdpartyCode = ``;
 
+	// Build list of unhandled files (HTML files in examples folder not listed in settings.examples)
 	{
 		let urls = settings.examples.map(e => e.url);
 		let unhandled = [];
 		for(let file of files){
 			let isHandled = false;
 			for(let url of urls){
-
 				if(file.indexOf(url) !== -1){
 					isHandled = true;
+					break;
 				}
 			}
 
@@ -37,7 +34,6 @@ async function createExamplesPage(){
 			.filter(file => file.indexOf(".html") > 0)
 			.filter(file => file !== "page.html");
 
-
 		for(let file of unhandled){
 			unhandledCode += `
 				<a href="${file}" class="unhandled">${file}</a>
@@ -45,6 +41,7 @@ async function createExamplesPage(){
 		}
 	}
 
+	// Build HTML for examples
 	for(let example of settings.examples){
 		exampleCode += `
 		<a href="${example.url}" target="_blank" style="display: inline-block">
@@ -55,25 +52,7 @@ async function createExamplesPage(){
 		`;
 	}
 
-	for(let showcaseItem of settings.showcase){
-		showcaseCode += `<a href="${showcaseItem.url}" target="_blank" style="display: inline-block">
-			<div class="thumb" style="background-image: url('${showcaseItem.thumb}'); ">
-				<div class="thumb-label">${showcaseItem.label}</div>
-			</div>
-		</a>
-		`;
-	}
-
-	for(let item of settings.thirdparty){
-		thirdpartyCode += `<a href="${item.url}" target="_blank" style="display: inline-block">
-			<div class="thumb" style="background-image: url('${item.thumb}'); ">
-				<div class="thumb-label">${item.label}</div>
-			</div>
-		</a>
-		`;
-	}
-
-
+	// Build final HTML page with ONLY the examples section and unhandled files
 	let page = `
 		<html>
 			<head>
@@ -108,7 +87,6 @@ async function createExamplesPage(){
 				max-width: 1200px;
 				margin: auto;
 				margin-top: 50px;
-
 			}
 
 			.unhandled{
@@ -120,7 +98,6 @@ async function createExamplesPage(){
 				font-family: "Helvetica Neue", "Lucida Grande", Arial;
 				font-size: 13px;
 				border: 1px solid rgba(0, 0, 0, 0);
-
 			}
 
 			.unhandled:hover{
@@ -140,45 +117,14 @@ async function createExamplesPage(){
 			}
 
 			#samples_container{
-				display: grid;
-				grid-template-columns: 70% 30%;
-				grid-gap: 10px;
-				grid-template-rows: auto auto;
-
 				max-width: 1300px;
 				margin: auto;
+				margin-top: 20px;
 			}
-
 
 			#thumb_container{
-				grid-column-start: 1;
-				grid-column-end: 1;
-				grid-row-start: 1;
-				grid-row-end: 1;
-
 				max-width: 1200px;
 				margin: auto;
-				margin-top: 20px
-			}
-
-			#external_container{
-				grid-column-start: 2;
-				grid-column-end: 2;
-				grid-row-start: 1;
-				grid-row-end: span 2;
-
-				margin-top: 20px
-			}
-
-			#showcase_container{
-				grid-column-start: 1;
-				grid-column-end: 1;
-				grid-row-start: 2;
-				grid-row-end: 2;
-
-				max-width: 1200px;
-				margin: auto;
-				margin-top: 20px;
 			}
 
 			</style>
@@ -192,19 +138,7 @@ async function createExamplesPage(){
 						${exampleCode}
 					</div>
 
-					<div id="showcase_container">
-						<h1>Showcase</h1>
-						${showcaseCode}
-					</div>
-
-					<div id="external_container">
-						<h1>Third Party</h1>
-						${thirdpartyCode}
-					</div>
-
 				</div>
-
-
 
 				<div class="unhandled_container">
 					<h1>Other</h1>
@@ -223,8 +157,5 @@ async function createExamplesPage(){
 		}
 	});
 }
-
-
-
 
 exports.createExamplesPage = createExamplesPage;
