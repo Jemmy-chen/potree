@@ -1,4 +1,3 @@
-
 const path = require('path');
 const fs = require("fs");
 const fsp = fs.promises;
@@ -6,129 +5,128 @@ const JSON5 = require('json5');
 
 function toCode(files, data){
 
-	let code = "";
+    if (!Array.isArray(data)) {
+        // If data is missing or not an array, return empty string to avoid errors
+        return "";
+    }
 
-	{
-		let urls = data.map(e => e.url);
-		let unhandled = [];
-		for(let file of files){
-			let isHandled = false;
-			for(let url of urls){
+    let code = "";
 
-				if(file.indexOf(url) !== -1){
-					isHandled = true;
-				}
-			}
+    {
+        let urls = data.map(e => e.url);
+        let unhandled = [];
+        for(let file of files){
+            let isHandled = false;
+            for(let url of urls){
 
-			if(!isHandled){
-				unhandled.push(file);
-			}
-		}
-		unhandled = unhandled
-			.filter(file => file.indexOf(".html") > 0)
-			.filter(file => file !== "page.html");
+                if(file.indexOf(url) !== -1){
+                    isHandled = true;
+                }
+            }
 
+            if(!isHandled){
+                unhandled.push(file);
+            }
+        }
+        unhandled = unhandled
+            .filter(file => file.indexOf(".html") > 0)
+            .filter(file => file !== "page.html");
 
-		// for(let file of unhandled){
-		// 	unhandledCode += `
-		// 		<a href="${file}" class="unhandled">${file}</a>
-		// 	`;
-		// }
-	}
+        // You can handle unhandled here if needed
+    }
 
-	const rows = [];
-	let row = [];
-	for(let example of data){
-		row.push(example);
+    const rows = [];
+    let row = [];
+    for(let example of data){
+        row.push(example);
 
-		if(row.length >= 6){
-			rows.push(row);
-			row = [];
-		}
-	};
-	rows.push(row);
+        if(row.length >= 6){
+            rows.push(row);
+            row = [];
+        }
+    };
+    if(row.length > 0){
+        rows.push(row);
+    }
 
-	for(const row of rows){
+    for(const row of rows){
 
-		let thumbnails = "";
-		let labels = "";
+        let thumbnails = "";
+        let labels = "";
 
-		for(let example of row){
+        for(let example of row){
 
-			let url = example.url.startsWith("http") ? 
-				example.url : 
-				`http://potree.org/potree/examples/${example.url}`;
-			
-			thumbnails += `<td>
-					<a href="${url}" target="_blank">
-						<img src="examples/${example.thumb}" width="100%" />
-					</a>
-				</td>`;
-			
-			labels += `<th>${example.label}</th>`;
-		}
+            let url = example.url.startsWith("http") ? 
+                example.url : 
+                `http://potree.org/potree/examples/${example.url}`;
+            
+            thumbnails += `<td>
+                    <a href="${url}" target="_blank">
+                        <img src="examples/${example.thumb}" width="100%" />
+                    </a>
+                </td>`;
+            
+            labels += `<th>${example.label}</th>`;
+        }
 
-		code += `<tr>
-				${thumbnails}
-			</tr>
-			<tr>
-				${labels}
-			</tr>`;
-	}
+        code += `<tr>
+                ${thumbnails}
+            </tr>
+            <tr>
+                ${labels}
+            </tr>`;
+    }
 
-	return code;
+    return code;
 }
-
 
 async function createGithubPage(){
-	const content = await fsp.readFile("./examples/page.json", 'utf8');
-	const settings = JSON5.parse(content);
+    const content = await fsp.readFile("./examples/page.json", 'utf8');
+    const settings = JSON5.parse(content);
 
-	const files = await fsp.readdir("./examples");
+    const files = await fsp.readdir("./examples");
 
-	let unhandledCode = ``;
+    let unhandledCode = ``;
 
-	let exampleCode = toCode(files, settings.examples);
-	let vrCode = toCode(files, settings.VR);
-	let showcaseCode = toCode(files, settings.showcase);
-	let thirdpartyCode = toCode(files, settings.thirdparty);
+    // Use empty arrays if these keys don't exist to prevent errors
+    let exampleCode = toCode(files, settings.examples || []);
+    let vrCode = toCode(files, settings.VR || []);
+    let showcaseCode = toCode(files, settings.showcase || []);
+    let thirdpartyCode = toCode(files, settings.thirdparty || []);
 
-	let page = `
+    let page = `
 
-		<h1>Examples</h1>
+        <h1>Examples</h1>
 
-		<table>
-			${exampleCode}
-		</table>
+        <table>
+            ${exampleCode}
+        </table>
 
-		<h1>VR</h1>
+        <h1>VR</h1>
 
-		<table>
-			${vrCode}
-		</table>
+        <table>
+            ${vrCode}
+        </table>
 
-		<h1>Showcase</h1>
+        <h1>Showcase</h1>
 
-		<table>
-			${showcaseCode}
-		</table>
+        <table>
+            ${showcaseCode}
+        </table>
 
-		<h1>Third Party Showcase</h1>
+        <h1>Third Party Showcase</h1>
 
-		<table>
-			${thirdpartyCode}
-		</table>`;
+        <table>
+            ${thirdpartyCode}
+        </table>`;
 
-	fs.writeFile(`examples/github.html`, page, (err) => {
-		if(err){
-			console.log(err);
-		}else{
-			console.log(`created examples/github.html`);
-		}
-	});
+    fs.writeFile(`examples/github.html`, page, (err) => {
+        if(err){
+            console.log(err);
+        }else{
+            console.log(`created examples/github.html`);
+        }
+    });
 }
-
-
-
 
 exports.createGithubPage = createGithubPage;
