@@ -87,10 +87,6 @@ async function createExamplesPage(){
 				max-width: 1200px;
 				margin: auto;
 				margin-top: 50px;
-<<<<<<< HEAD
-=======
-
->>>>>>> e9a833db6ae4ea75b088859beab51db9a94703a2
 			}
 
 			.unhandled{
@@ -102,10 +98,6 @@ async function createExamplesPage(){
 				font-family: "Helvetica Neue", "Lucida Grande", Arial;
 				font-size: 13px;
 				border: 1px solid rgba(0, 0, 0, 0);
-<<<<<<< HEAD
-=======
-
->>>>>>> e9a833db6ae4ea75b088859beab51db9a94703a2
 			}
 
 			.unhandled:hover{
@@ -125,7 +117,6 @@ async function createExamplesPage(){
 			}
 
 			#samples_container{
-<<<<<<< HEAD
 				max-width: 1300px;
 				margin: auto;
 				margin-top: 20px;
@@ -134,47 +125,6 @@ async function createExamplesPage(){
 			#thumb_container{
 				max-width: 1200px;
 				margin: auto;
-=======
-				display: grid;
-				grid-template-columns: 70% 30%;
-				grid-gap: 10px;
-				grid-template-rows: auto auto;
-
-				max-width: 1300px;
-				margin: auto;
-			}
-
-
-			#thumb_container{
-				grid-column-start: 1;
-				grid-column-end: 1;
-				grid-row-start: 1;
-				grid-row-end: 1;
-
-				max-width: 1200px;
-				margin: auto;
-				margin-top: 20px
-			}
-
-			#external_container{
-				grid-column-start: 2;
-				grid-column-end: 2;
-				grid-row-start: 1;
-				grid-row-end: span 2;
-
-				margin-top: 20px
-			}
-
-			#showcase_container{
-				grid-column-start: 1;
-				grid-column-end: 1;
-				grid-row-start: 2;
-				grid-row-end: 2;
-
-				max-width: 1200px;
-				margin: auto;
-				margin-top: 20px;
->>>>>>> e9a833db6ae4ea75b088859beab51db9a94703a2
 			}
 
 			</style>
