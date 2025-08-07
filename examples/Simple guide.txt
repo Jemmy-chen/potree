@@ -1,0 +1,5 @@
+Convert las/laz format with Potree Converter,
+.html store to "pointcloud/models/"
+the gerated hierachy bin, metadata.json, and octree bin will need to store to blob storage
+in page.json, add one line under examples block: 	{"thumb": "thumbnails/{model_background}.png", "label": "Model 1", "url": "../pointclouds/models/{model_name}.html"},
+the model.html, modify the pointclouds url to use metadata.json url stored in blob storage
