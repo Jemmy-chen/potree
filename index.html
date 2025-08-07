@@ -165,7 +165,7 @@
   <script src="build/potree/potree.js"></script>
   <script type="module" src="libs/three.js/build/three.module.js"></script>
 
-  <script>
+ <script>
     fetch("examples/page.json")
       .then(response => response.json())
       .then(data => {
@@ -187,11 +187,15 @@
             div.className = "example";
 
             const a = document.createElement("a");
-            a.href = "examples/" + example.url;
+            a.href = example.url.startsWith("http")
+              ? example.url
+              : "examples/" + example.url;
             a.title = example.label || example.url;
 
             const img = document.createElement("img");
-            img.src = "examples/" + example.thumb;
+            img.src = example.thumb.startsWith("http")
+              ? example.thumb
+              : "examples/" + example.thumb;
             img.alt = example.label || example.url;
 
             const label = document.createElement("div");
