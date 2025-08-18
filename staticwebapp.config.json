@@ -2,19 +2,15 @@
   "routes": [
     {
       "route": "/libs/*",
-      "serve": "/libs/"
+      "rewrite": "/libs/"
     },
     {
       "route": "/build/*",
-      "serve": "/build/"
+      "rewrite": "/build/"
     },
     {
       "route": "/examples/*",
-      "serve": "/examples/"
-    },
-     {
-      "route": "/api/getSasUrl",
-      "rewrite": "/api/getSasUrl/index.js"
+      "rewrite": "/examples/"
     }
   ]
 }
