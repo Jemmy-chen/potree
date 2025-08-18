@@ -27,27 +27,22 @@
 	<script src="./libs/jstree/jstree.js"></script>
 	<script src="./libs/potree/potree.js"></script>
 	<script src="./libs/plasio/js/laslaz.js"></script>
-	
-	<!-- INCLUDE ADDITIONAL DEPENDENCIES HERE -->
-	<!-- INCLUDE SETTINGS HERE -->
-	
-	<div class="potree_container" style="position: absolute; width: 100%; height: 100%; left: 0px; top: 0px; ">
+
+	<div class="potree_container" style="position: absolute; width: 100%; height: 100%; left: 0px; top: 0px;">
 		<div id="potree_render_area" style="background-image: url('../build/potree/resources/images/background.jpg');"></div>
 		<div id="potree_sidebar_container"> </div>
 	</div>
-	
+
 	<script>
-	
-		window.viewer = new Potree.Viewer(document.getElementById("potree_render_area"));
-		
+		// Initialize Potree viewer
+		const viewer = new Potree.Viewer(document.getElementById("potree_render_area"));
+
 		viewer.setEDLEnabled(true);
 		viewer.setFOV(60);
 		viewer.setPointBudget(2_000_000);
-		<!-- INCLUDE SETTINGS HERE -->
 		viewer.loadSettingsFromURL();
-		
-		viewer.setDescription("");
-		
+		viewer.setDescription("Lion model point cloud");
+
 		viewer.loadGUI(() => {
 			viewer.setLanguage('en');
 			$("#menu_appearance").next().show();
@@ -55,28 +50,29 @@
 			$("#menu_clipping").next().show();
 			viewer.toggleSidebar();
 		});
-		
-		
 
-		Potree.loadPointCloud("https://testing231.s3.ap-southeast-1.amazonaws.com/dev/models/pointclouds/myviewer1/metadata.json", "myviewer1", e => {
-			let scene = viewer.scene;
-			let pointcloud = e.pointcloud;
-			
-			let material = pointcloud.material;
-			material.size = 1;
-			material.pointSizeType = Potree.PointSizeType.ADAPTIVE;
-			material.shape = Potree.PointShape.SQUARE;
-			material.activeAttributeName = "rgba";
-			
-			scene.addPointCloud(pointcloud);
-			
-			viewer.fitToScreen();
-		});
+		// Hardcoded model name
+		const modelName = "myviewer1";
 
-		
-		
+		// Fetch the SAS URL for the lion model from your API
+		fetch(`/api/getSasUrl?model=${modelName}`)
+			.then(response => response.json())
+			.then(data => {
+				Potree.loadPointCloud(data.url, modelName, e => {
+					const scene = viewer.scene;
+					const pointcloud = e.pointcloud;
+
+					const material = pointcloud.material;
+					material.size = 1;
+					material.pointSizeType = Potree.PointSizeType.ADAPTIVE;
+					material.shape = Potree.PointShape.SQUARE;
+					material.activeAttributeName = "rgba";
+
+					scene.addPointCloud(pointcloud);
+					viewer.fitToScreen();
+				});
+			})
+			.catch(err => console.error("Failed to fetch SAS URL:", err));
 	</script>
-	
-	
-  </body>
+</body>
 </html>
