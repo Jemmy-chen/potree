@@ -11,6 +11,10 @@
     {
       "route": "/examples/*",
       "serve": "/examples/"
+    },
+     {
+      "route": "/api/getSasUrl",
+      "rewrite": "/api/getSasUrl/index.js"
     }
   ]
 }
