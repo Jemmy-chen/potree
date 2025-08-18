@@ -55,7 +55,7 @@
 		const modelName = "myviewer1";
 
 		// Fetch the SAS URL for the lion model from your API
-		fetch(`/api/getSasUrl?model=${modelName}`)
+		fetch(`https://calm-sand-073d60c00.1.azurestaticapps.net/api/getSasUrl?model=${modelName}`)
 			.then(response => response.json())
 			.then(data => {
 				Potree.loadPointCloud(data.url, modelName, e => {
