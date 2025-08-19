@@ -14,7 +14,6 @@
 
 <body>
     <div class="potree_container" style="position: absolute; width: 100%; height: 100%; left: 0; top: 0;">
-        <!-- Use correct path for background -->
         <div id="potree_render_area" style="background-image: url('./libs/potree/resources/images/background.jpg');"></div>
         <div id="potree_sidebar_container"></div>
     </div>
@@ -53,7 +52,7 @@
         const modelName = "myviewer1";
 
         // Fetch the SAS URL
-        fetch(`/api/getSasUrl?model=${modelName}`)
+        fetch(`http://localhost:7071/api/getSasUrl?model=${modelName}`)
             .then(async response => {
                 if (!response.ok) {
                     const text = await response.text();

@@ -31,7 +31,13 @@ libs/CesiumUnminified
 /pointclouds/morro_bay_converted
 /pointclouds/helimap_epalinges
 pointclouds/F
-<<<<<<< HEAD
 .env
-=======
->>>>>>> 33c5009773dd4e7a99741df9308988314d58697d
+# Ignore local settings
+/api/**/local.settings.json
+
+# Ignore logs
+*.log
+
+# Ignore build artifacts (if any)
+dist/
+build/
