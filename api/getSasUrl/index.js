@@ -13,15 +13,14 @@ try {
   return;
 }
 
-const { generateBlobSASQueryParameters, StorageSharedKeyCredential, BlobSASPermissions, ContainerSASPermissions } = storageBlob;
+const { generateBlobSASQueryParameters, StorageSharedKeyCredential, ContainerSASPermissions } = storageBlob;
 
 module.exports = async function (context, req) {
   try {
     context.log("Step 1: Function started", { query: req.query });
     const model = req.query.model || "myviewer1";
     const containerName = "example-potree";
-    const blobName = `${model}/metadata.json`;
-    context.log("Step 2: Variables set", { model, containerName, blobName });
+    context.log("Step 2: Variables set", { model, containerName });
 
     const accountName = process.env.AZURE_STORAGE_ACCOUNT;
     const accountKey = process.env.AZURE_STORAGE_KEY;
@@ -54,12 +53,12 @@ module.exports = async function (context, req) {
     context.log("Step 6: Setting up dates");
     const start = new Date();
     const expiry = new Date(start);
-    expiry.setHours(expiry.getHours() + 24); // Extended to 24 hours for testing
+    expiry.setHours(expiry.getHours() + 24); // 24 hours expiry
 
     context.log("Step 7: Generating container SAS token");
     const sasToken = generateBlobSASQueryParameters({
       containerName,
-      permissions: ContainerSASPermissions.parse("r"), // Read permission for the container
+      permissions: ContainerSASPermissions.parse("r"), // Read-only for the container
       startsOn: start,
       expiresOn: expiry,
       protocol: "https"
@@ -73,7 +72,7 @@ module.exports = async function (context, req) {
     context.res = { 
       status: 200,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url: url, debug: { model, containerName, accountName: accountName.substring(0, 3) + "***" } })
+      body: JSON.stringify({ url, debug: { model, containerName, accountName: accountName.substring(0, 3) + "***" } })
     };
     context.log("Step 10: Response sent");
   } catch (err) {
