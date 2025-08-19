@@ -37,6 +37,7 @@ jobs:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
           skip_deploy_on_missing_secrets: false
           action: "upload"
+          run: npm install
           app_location: "."              # folder with index.html
           api_location: "api"               # no API
           output_location: "."           # same as app_location
@@ -52,6 +53,7 @@ jobs:
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
           action: "close"
+
 
 
 
