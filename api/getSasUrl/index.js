@@ -13,7 +13,7 @@ try {
   return;
 }
 
-const { generateBlobSASQueryParameters, StorageSharedKeyCredential, BlobSASPermissions } = storageBlob;
+const { generateBlobSASQueryParameters, StorageSharedKeyCredential, BlobSASPermissions, ContainerSASPermissions } = storageBlob;
 
 module.exports = async function (context, req) {
   try {
@@ -54,26 +54,26 @@ module.exports = async function (context, req) {
     context.log("Step 6: Setting up dates");
     const start = new Date();
     const expiry = new Date(start);
-    expiry.setHours(expiry.getHours() + 1);
+    expiry.setHours(expiry.getHours() + 24); // Extended to 24 hours for testing
 
-    context.log("Step 7: Generating SAS token");
+    context.log("Step 7: Generating container SAS token");
     const sasToken = generateBlobSASQueryParameters({
       containerName,
-      blobName,
-      permissions: BlobSASPermissions.parse("r"),
+      permissions: ContainerSASPermissions.parse("r"), // Read permission for the container
       startsOn: start,
       expiresOn: expiry,
       protocol: "https"
     }, sharedKeyCredential).toString();
 
     context.log("Step 8: SAS token generated");
-    const url = `https://${accountName}.blob.core.windows.net/${containerName}/${blobName}?${sasToken}`;
+    const baseUrl = `https://${accountName}.blob.core.windows.net/${containerName}`;
+    const url = `${baseUrl}?${sasToken}`;
 
     context.log("Step 9: Response prepared", { url: url.substring(0, 50) + "..." });
     context.res = { 
       status: 200,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url, debug: { model, containerName, blobName, accountName: accountName.substring(0, 3) + "***" } })
+      body: JSON.stringify({ url: url, debug: { model, containerName, accountName: accountName.substring(0, 3) + "***" } })
     };
     context.log("Step 10: Response sent");
   } catch (err) {
