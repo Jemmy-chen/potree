@@ -1,39 +1,62 @@
-const { generateBlobSASQueryParameters, StorageSharedKeyCredential, BlobSASPermissions } = require("@azure/storage-blob");
+let storageBlob;
+try {
+  storageBlob = require("@azure/storage-blob");
+} catch (err) {
+  module.exports = async function (context, req) {
+    context.log.error("Failed to load @azure/storage-blob", { message: err.message, stack: err.stack });
+    context.res = { 
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ error: "Module load failure", message: err.message })
+    };
+  };
+  return;
+}
+
+const { generateBlobSASQueryParameters, StorageSharedKeyCredential, BlobSASPermissions } = storageBlob;
 
 module.exports = async function (context, req) {
   try {
-    context.log("Step 1: Function started");
-    
+    context.log("Step 1: Function started", { query: req.query });
     const model = req.query.model || "myviewer1";
     const containerName = "example-potree";
     const blobName = `${model}/metadata.json`;
-    
     context.log("Step 2: Variables set", { model, containerName, blobName });
 
     const accountName = process.env.AZURE_STORAGE_ACCOUNT;
     const accountKey = process.env.AZURE_STORAGE_KEY;
-    
-    context.log("Step 3: Environment variables checked");
+    context.log("Step 3: Environment vars", { accountName: accountName ? accountName.substring(0, 3) + "***" : "undefined" });
 
     if (!accountName || !accountKey) {
+      context.log("Step 4: Missing credentials, returning error");
       context.res = { 
-        status: 200,  // Return 200 so we can see the error
+        status: 400,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ error: "Storage credentials missing." })
       };
       return;
     }
-    
-    context.log("Step 4: Creating credentials");
-    const sharedKeyCredential = new StorageSharedKeyCredential(accountName, accountKey);
-    
-    context.log("Step 5: Setting up dates");
+
+    context.log("Step 5: Creating credentials");
+    let sharedKeyCredential;
+    try {
+      sharedKeyCredential = new StorageSharedKeyCredential(accountName, accountKey);
+    } catch (err) {
+      context.log.error("Step 5: Credential creation failed", { message: err.message, stack: err.stack });
+      context.res = { 
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ error: "Invalid credentials", message: err.message })
+      };
+      return;
+    }
+
+    context.log("Step 6: Setting up dates");
     const start = new Date();
     const expiry = new Date(start);
     expiry.setHours(expiry.getHours() + 1);
-    
-    context.log("Step 6: About to generate SAS token");
-    
+
+    context.log("Step 7: Generating SAS token");
     const sasToken = generateBlobSASQueryParameters({
       containerName,
       blobName,
@@ -42,41 +65,23 @@ module.exports = async function (context, req) {
       expiresOn: expiry,
       protocol: "https"
     }, sharedKeyCredential).toString();
-    
-    context.log("Step 7: SAS token generated successfully");
-    
-    const url = `https://${accountName}.blob.core.windows.net/${containerName}/${blobName}?${sasToken}`;
-    
-    context.log("Step 8: Final URL constructed");
 
+    context.log("Step 8: SAS token generated");
+    const url = `https://${accountName}.blob.core.windows.net/${containerName}/${blobName}?${sasToken}`;
+
+    context.log("Step 9: Response prepared", { url: url.substring(0, 50) + "..." });
     context.res = { 
-      status: 200, 
+      status: 200,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ 
-        url,
-        debug: {
-          model,
-          containerName,
-          blobName,
-          accountName: accountName.substring(0, 3) + "***"
-        }
-      }) 
+      body: JSON.stringify({ url, debug: { model, containerName, blobName, accountName: accountName.substring(0, 3) + "***" } })
     };
-    
-    context.log("Step 9: Response sent successfully");
-    
+    context.log("Step 10: Response sent");
   } catch (err) {
-    context.log.error("Error at step:", err.message);
-    context.log.error("Stack trace:", err.stack);
-    
+    context.log.error("Step 11: Unexpected error", { message: err.message, stack: err.stack });
     context.res = { 
-      status: 200,  // Return 200 so we can see the error details
+      status: 500,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ 
-        error: "Failed to generate SAS URL", 
-        message: err.message,
-        stack: err.stack
-      }) 
+      body: JSON.stringify({ error: "Internal server error", message: err.message, stack: err.stack })
     };
   }
 };
