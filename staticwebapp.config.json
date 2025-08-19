@@ -2,15 +2,15 @@
   "routes": [
     {
       "route": "/libs/*",
-      "rewrite": "/libs/"
+      "serve": "/libs/"
     },
     {
       "route": "/build/*",
-      "rewrite": "/build/"
+      "serve": "/build/"
     },
     {
       "route": "/examples/*",
-      "rewrite": "/examples/"
+      "serve": "/examples/"
     }
   ]
 }
