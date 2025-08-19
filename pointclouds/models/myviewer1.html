@@ -52,7 +52,7 @@
         const modelName = "myviewer1";
 
         // Fetch the SAS URL
-        fetch(`http://localhost:7071/api/getSasUrl?model=${modelName}`)
+        fetch(`/api/getSasUrl?model=${modelName}`)
             .then(async response => {
                 if (!response.ok) {
                     const text = await response.text();
