@@ -1,0 +1,8 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "node",
+    "SAS_TOKEN": "sp=r&st=2025-08-18T05:51:39Z&se=2026-10-01T14:06:39Z&spr=https&sv=2024-11-04&sr=c&sig=MaSsm%2BtrkG6..." 
+  }
+}
