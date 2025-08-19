@@ -22,6 +22,7 @@
     "postinstall": "npm run build"
   },
   "dependencies": {
+    "@azure/storage-blob": "^12.17.0",
     "gulp": "^4.0.2",
     "gulp-concat": "^2.6.1",
     "gulp-connect": "^5.7.0",
