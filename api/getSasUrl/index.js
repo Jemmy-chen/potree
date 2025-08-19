@@ -13,7 +13,7 @@ module.exports = async function (context, req) {
     context.log("Account Key:", accountKey ? "SET" : "MISSING");
 
     if (!accountName || !accountKey) {
-      context.ares = { status: 500, body: "Storage credentials missing." };
+      context.res = { status: 500, body: "Storage credentials missing." };
       return;
     }
 
