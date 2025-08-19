@@ -34,7 +34,7 @@ pointclouds/F
 .env
 # Ignore local settings
 /api/**/local.settings.json
-
+local.settings.json
 # Ignore logs
 *.log
 
