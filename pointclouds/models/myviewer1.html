@@ -31,7 +31,7 @@
     <script src="./libs/potree/potree.js"></script>
     <script src="./libs/plasio/js/laslaz.js"></script>
 
-   <script>
+  <script>
     // Initialize Potree viewer
     const viewer = new Potree.Viewer(document.getElementById("potree_render_area"));
     viewer.setEDLEnabled(true);
@@ -63,10 +63,13 @@
         .then(data => {
             if (!data.url) throw new Error("Invalid SAS URL returned");
             
-            // Append the metadata path to the container SAS URL
-            const metadataUrl = `${data.url}/${modelName}/metadata.json`;
+            // Parse the URL and append the path correctly
+            const urlParts = data.url.split('?');
+            const baseUrl = urlParts[0]; // e.g., https://testing10294.blob.core.windows.net/example-potree
+            const queryString = urlParts[1] || ''; // e.g., sv=2025-07-05&spr=https&...
+            const metadataUrl = `${baseUrl}/${modelName}/metadata.json?${queryString}`;
             
-            // Load point cloud
+            console.log("Constructed metadataUrl:", metadataUrl); // Debug log
             Potree.loadPointCloud(metadataUrl, modelName, e => {
                 const scene = viewer.scene;
                 const pointcloud = e.pointcloud;

@@ -66,7 +66,7 @@ module.exports = async function (context, req) {
 
     context.log("Step 8: SAS token generated");
     const baseUrl = `https://${accountName}.blob.core.windows.net/${containerName}`;
-    const url = `${baseUrl}?${sasToken}`;
+    const url = `${baseUrl}?${sasToken}`; // Ensure no extra path here
 
     context.log("Step 9: Response prepared", { url: url.substring(0, 50) + "..." });
     context.res = { 
