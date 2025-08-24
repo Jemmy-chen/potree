@@ -59,27 +59,23 @@ module.exports = async function (context, req) {
       return;
     }
 
-    // Test URL construction
-    const metadataUrl = `https://${accountName}.blob.core.windows.net/${containerName}/${model}/metadata.json?${sasToken}`;
+    // Provide base URL and SAS token separately
     const baseUrl = `https://${accountName}.blob.core.windows.net/${containerName}`;
     
     context.log("URLs constructed:", {
-      metadataUrl: metadataUrl.substring(0, 100) + "...",
       baseUrl: baseUrl
     });
 
     const responseData = {
       debug: true,
       success: true,
-      url: metadataUrl,
       baseUrl: baseUrl,
       sasToken: sasToken,
       model: model,
       info: {
         accountName: accountName,
         containerName: containerName,
-        sasTokenLength: sasToken.length,
-        metadataUrlLength: metadataUrl.length
+        sasTokenLength: sasToken.length
       }
     };
 
