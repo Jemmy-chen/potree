@@ -31,7 +31,7 @@
         const viewer = new Potree.Viewer(document.getElementById("potree_render_area"));
         viewer.setEDLEnabled(true);
         viewer.setFOV(60);
-        viewer.setPointBudget(1_000_000);
+        viewer.setPointBudget(10_000_000); // Increased for 105M points
         viewer.loadSettingsFromURL();
         viewer.setDescription("Lion model point cloud");
         viewer.loadGUI(() => {
@@ -55,6 +55,19 @@
                 const metadataUrl = `${data.baseUrl}/${data.model}/metadata.json?${data.sasToken}`;
                 const octreeUrl = `${data.baseUrl}/${data.model}/octree.bin?${data.sasToken}`;
                 const hierarchyUrl = `${data.baseUrl}/${data.model}/hierarchy.bin?${data.sasToken}`;
+                // Predefine correct URLs for Potree
+                const originalLoad = Potree.loadPointCloud;
+                Potree.loadPointCloud = function(url, name, callback, errorCallback) {
+                    if (url === metadataUrl) {
+                        return originalLoad.call(this, url, name, (e) => {
+                            const pointcloud = e.pointcloud;
+                            pointcloud.basePath = `${window.azureBaseUrl}/${window.azureModel}/`;
+                            pointcloud.url = octreeUrl;
+                            callback(e);
+                        }, errorCallback);
+                    }
+                    return originalLoad.call(this, url, name, callback, errorCallback);
+                };
                 const originalFetch = window.fetch;
                 window.fetch = async function(url, options) {
                     if ((url.includes('.bin') || url.includes('hierarchy')) && url.includes('blob.core.windows.net')) {
@@ -66,9 +79,6 @@
                             const filename = parts.pop().split('?')[0];
                             newUrl = `${window.azureBaseUrl}/${window.azureModel}/${filename}?${window.azureSasToken}`;
                             console.log("Fixed Fetch URL:", newUrl);
-                        } else if (!url.startsWith('http')) {
-                            newUrl = `${window.azureBaseUrl}/${window.azureModel}/${url.split('/').pop()}?${window.azureSasToken}`;
-                            console.log("Adjusted Fetch URL:", newUrl);
                         }
                         return originalFetch.call(this, newUrl, options).catch(err => {
                             console.error("Fetch failed after fix:", err);
@@ -77,16 +87,14 @@
                     }
                     return originalFetch.call(this, url, options);
                 };
-                // Override Potree's URL resolution
                 Potree.loadPointCloud(metadataUrl, modelName, e => {
                     console.log("Point cloud loaded successfully");
                     const scene = viewer.scene;
                     const pointcloud = e.pointcloud;
-                    pointcloud.url = octreeUrl; // Force correct octree URL
                     const material = pointcloud.material;
-                    material.size = 1;
-                    material.pointSizeType = Potree.PointSizeType.ADAPTIVE;
-                    material.shape = Potree.PointShape.SQUARE;
+                    material.size = 2;
+                    material.pointSizeType = Potree.PointSizeType.FIXED;
+                    material.shape = Potree.PointShape.CIRCLE;
                     material.activeAttributeName = "rgba";
                     scene.addPointCloud(pointcloud);
                     viewer.fitToScreen();
