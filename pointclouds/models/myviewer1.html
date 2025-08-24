@@ -55,18 +55,23 @@
                 const metadataUrl = `${data.baseUrl}/${data.model}/metadata.json?${data.sasToken}`;
                 const originalFetch = window.fetch;
                 window.fetch = async function(url, options) {
-                    if (url.includes('.bin') && url.includes('blob.core.windows.net')) {
-                        console.log("Fetch request:", url);
+                    if ((url.includes('.bin') || url.includes('hierarchy')) && url.includes('blob.core.windows.net')) {
+                        console.log("Original Fetch Request:", url);
                         let newUrl = url;
                         if (url.includes('../')) {
                             console.log("Fixing malformed fetch URL with ../");
                             const parts = url.split('/');
                             const filename = parts.pop().split('?')[0];
                             newUrl = `${window.azureBaseUrl}/${window.azureModel}/${filename}?${window.azureSasToken}`;
+                            console.log("Fixed Fetch URL:", newUrl);
+                            return originalFetch.call(this, newUrl, options).catch(err => {
+                                console.error("Fetch failed after fix:", err);
+                                return Promise.reject(err);
+                            });
                         } else if (!url.startsWith('http')) {
-                            newUrl = `${window.azureBaseUrl}/${window.azureModel}/${url}?${window.azureSasToken}`;
+                            newUrl = `${window.azureBaseUrl}/${window.azureModel}/${url.split('/').pop()}?${window.azureSasToken}`;
+                            console.log("Adjusted Fetch URL:", newUrl);
                         }
-                        console.log("Fixed fetch URL:", newUrl);
                         return originalFetch.call(this, newUrl, options);
                     }
                     return originalFetch.call(this, url, options);
