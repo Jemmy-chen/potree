@@ -13,46 +13,59 @@ try {
   return;
 }
 
-const { generateBlobSASQueryParameters, StorageSharedKeyCredential, ContainerSASPermissions } = storageBlob;
+const { generateBlobSASQueryParameters, StorageSharedKeyCredential, ContainerSASPermissions } = require("@azure/storage-blob");
 
 module.exports = async function (context, req) {
   try {
-    context.log("Step 1: Function started", { query: req.query });
+    context.log("Function started");
+    
     const model = req.query.model || "myviewer1";
     const containerName = "example-potree";
-    context.log("Step 2: Variables set", { model, containerName });
-
+    
     const accountName = process.env.AZURE_STORAGE_ACCOUNT;
     const sasToken = process.env.SAS_TOKEN;
-    context.log("Step 3: Environment vars", { accountName: accountName ? accountName.substring(0, 3) + "***" : "undefined", sasToken: sasToken ? "****" : "undefined" });
+    
+    context.log("Environment check", {
+      accountName: accountName ? "SET" : "MISSING",
+      sasToken: sasToken ? "SET" : "MISSING"
+    });
 
     if (!accountName || !sasToken) {
-      context.log("Step 4: Missing credentials or SAS token, returning error");
-      context.res = { 
+      context.res = {
         status: 400,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ error: "Storage credentials or SAS token missing." })
+        body: JSON.stringify({ error: "Storage account name or SAS token missing." })
       };
       return;
     }
 
-    context.log("Step 5: Constructing URL");
+    // Return base container URL with pre-generated SAS token
     const baseUrl = `https://${accountName}.blob.core.windows.net/${containerName}`;
-    const url = `${baseUrl}?${sasToken}`; // Append the SAS token from env
-
-    context.log("Step 6: Response prepared", { url: url.substring(0, 50) + "..." });
-    context.res = { 
+    
+    context.res = {
       status: 200,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url, debug: { model, containerName, accountName: accountName.substring(0, 3) + "***" } })
+      body: JSON.stringify({
+        baseUrl,
+        sasToken,
+        model,
+        debug: {
+          containerName,
+          accountName: accountName.substring(0, 3) + "***",
+          sasTokenLength: sasToken.length
+        }
+      })
     };
-    context.log("Step 7: Response sent");
+
   } catch (err) {
-    context.log.error("Step 8: Unexpected error", { message: err.message, stack: err.stack });
-    context.res = { 
+    context.log.error("Error in function:", err);
+    context.res = {
       status: 500,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ error: "Internal server error", message: err.message, stack: err.stack })
+      body: JSON.stringify({
+        error: "Internal server error",
+        message: err.message
+      })
     };
   }
 };
