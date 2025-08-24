@@ -66,11 +66,11 @@
                 // Debug the raw data.url
                 console.log("Raw data.url:", data.url);
                 
-                // Parse the URL and insert the path before the query string
+                // Parse the URL and extract base path and query
                 const url = new URL(data.url, window.location.origin);
-                const baseUrl = url.origin + url.pathname; // e.g., https://testing10294.blob.core.windows.net/example-potree
-                const queryString = url.search; // e.g., ?Cdslmdj5zmC8KeIqY4cgwLUnv4rfaEY+...
-                const metadataUrl = `${baseUrl}/${modelName}/metadata.json${queryString}`;
+                const basePath = url.origin + url.pathname; // e.g., https://testing10294.blob.core.windows.net/example-potree
+                const queryString = url.search; // e.g., ?sp=r&st=...&sig=...
+                const metadataUrl = `${basePath}/${modelName}/metadata.json${queryString}`;
                 
                 // Debug the constructed URL
                 console.log("Constructed metadataUrl:", metadataUrl);
