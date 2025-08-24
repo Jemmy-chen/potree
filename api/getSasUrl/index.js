@@ -16,55 +16,93 @@ try {
 const { generateBlobSASQueryParameters, StorageSharedKeyCredential, ContainerSASPermissions } = require("@azure/storage-blob");
 
 module.exports = async function (context, req) {
+  context.log("=== DEBUG FUNCTION START ===");
+  
   try {
-    context.log("Function started");
-    
     const model = req.query.model || "myviewer1";
     const containerName = "example-potree";
     
     const accountName = process.env.AZURE_STORAGE_ACCOUNT;
     const sasToken = process.env.SAS_TOKEN;
     
-    context.log("Environment check", {
-      accountName: accountName ? "SET" : "MISSING",
-      sasToken: sasToken ? "SET" : "MISSING"
+    context.log("Environment variables:", {
+      accountName: accountName || "MISSING",
+      sasToken: sasToken ? "PRESENT (length: " + sasToken.length + ")" : "MISSING",
+      model: model,
+      containerName: containerName
     });
 
-    if (!accountName || !sasToken) {
+    if (!accountName) {
       context.res = {
-        status: 400,
+        status: 200,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ error: "Storage account name or SAS token missing." })
+        body: JSON.stringify({ 
+          debug: true,
+          error: "AZURE_STORAGE_ACCOUNT missing",
+          envVars: Object.keys(process.env)
+        })
       };
       return;
     }
 
-    // Return base container URL with pre-generated SAS token
+    if (!sasToken) {
+      context.res = {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          debug: true,
+          error: "SAS_TOKEN missing",
+          accountName: accountName,
+          envVars: Object.keys(process.env)
+        })
+      };
+      return;
+    }
+
+    // Test URL construction
+    const metadataUrl = `https://${accountName}.blob.core.windows.net/${containerName}/${model}/metadata.json?${sasToken}`;
     const baseUrl = `https://${accountName}.blob.core.windows.net/${containerName}`;
     
+    context.log("URLs constructed:", {
+      metadataUrl: metadataUrl.substring(0, 100) + "...",
+      baseUrl: baseUrl
+    });
+
+    const responseData = {
+      debug: true,
+      success: true,
+      url: metadataUrl,
+      baseUrl: baseUrl,
+      sasToken: sasToken,
+      model: model,
+      info: {
+        accountName: accountName,
+        containerName: containerName,
+        sasTokenLength: sasToken.length,
+        metadataUrlLength: metadataUrl.length
+      }
+    };
+
+    context.log("Response data keys:", Object.keys(responseData));
+
+    context.res = {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(responseData)
+    };
+
+    context.log("=== DEBUG FUNCTION END SUCCESS ===");
+
+  } catch (err) {
+    context.log.error("=== DEBUG FUNCTION ERROR ===", err);
     context.res = {
       status: 200,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        baseUrl,
-        sasToken,
-        model,
-        debug: {
-          containerName,
-          accountName: accountName.substring(0, 3) + "***",
-          sasTokenLength: sasToken.length
-        }
-      })
-    };
-
-  } catch (err) {
-    context.log.error("Error in function:", err);
-    context.res = {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        error: "Internal server error",
-        message: err.message
+        debug: true,
+        error: "Exception occurred",
+        message: err.message,
+        stack: err.stack
       })
     };
   }
