@@ -31,67 +31,64 @@
     <script src="./libs/potree/potree.js"></script>
     <script src="./libs/plasio/js/laslaz.js"></script>
 
-<script>
-    // Initialize Potree viewer
-    const viewer = new Potree.Viewer(document.getElementById("potree_render_area"));
-    viewer.setEDLEnabled(true);
-    viewer.setFOV(60);
-    viewer.setPointBudget(2_000_000);
-    viewer.loadSettingsFromURL();
-    viewer.setDescription("Lion model point cloud");
+    <script>
+        // Initialize Potree viewer
+        const viewer = new Potree.Viewer(document.getElementById("potree_render_area"));
+        viewer.setEDLEnabled(true);
+        viewer.setFOV(60);
+        viewer.setPointBudget(2_000_000);
+        viewer.loadSettingsFromURL();
+        viewer.setDescription("Lion model point cloud");
 
-    viewer.loadGUI(() => {
-        viewer.setLanguage('en');
-        $("#menu_appearance").next().show();
-        $("#menu_tools").next().show();
-        $("#menu_clipping").next().show();
-        viewer.toggleSidebar();
-    });
-
-    // Hardcoded model name
-    const modelName = "myviewer1";
-
-    // Fetch the SAS URL
-    fetch(`/api/getSasUrl?model=${modelName}`)
-        .then(async response => {
-            if (!response.ok) {
-                const text = await response.text();
-                throw new Error(`HTTP ${response.status}: ${text}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (!data.url) throw new Error("Invalid SAS URL returned");
-            
-            // Debug the raw data.url
-            console.log("Raw data.url:", data.url);
-            
-            // Use URL object for robust parsing
-            const url = new URL(data.url, window.location.origin); // Ensure proper base
-            const baseUrl = url.origin + url.pathname; // e.g., https://testing10294.blob.core.windows.net/example-potree
-            const queryString = url.search.slice(1); // e.g., sv=2025-07-05&spr=https&...
-            const metadataUrl = `${baseUrl}/${modelName}/metadata.json?${queryString}`;
-            
-            // Debug the constructed URL
-            console.log("Constructed metadataUrl:", metadataUrl);
-            Potree.loadPointCloud(metadataUrl, modelName, e => {
-                const scene = viewer.scene;
-                const pointcloud = e.pointcloud;
-
-                const material = pointcloud.material;
-                material.size = 1;
-                material.pointSizeType = Potree.PointSizeType.ADAPTIVE;
-                material.shape = Potree.PointShape.SQUARE;
-                material.activeAttributeName = "rgba";
-
-                scene.addPointCloud(pointcloud);
-                viewer.fitToScreen();
-            });
-        })
-        .catch(err => {
-            console.error("Failed to fetch SAS URL or load point cloud:", err);
-            alert("Error loading point cloud. Check console for details.");
+        viewer.loadGUI(() => {
+            viewer.setLanguage('en');
+            $("#menu_appearance").next().show();
+            $("#menu_tools").next().show();
+            $("#menu_clipping").next().show();
+            viewer.toggleSidebar();
         });
-</script>
+
+        // Hardcoded model name
+        const modelName = "myviewer1";
+
+        // Fetch the SAS URL
+        fetch(`/api/getSasUrl?model=${modelName}`)
+            .then(async response => {
+                if (!response.ok) {
+                    const text = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${text}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (!data.url) throw new Error("Invalid SAS URL returned");
+                
+                // Debug the raw data.url
+                console.log("Raw data.url:", data.url);
+                
+                // Use the provided URL directly since it includes the SAS token
+                const metadataUrl = `${data.url}/${modelName}/metadata.json`;
+                
+                // Debug the constructed URL
+                console.log("Constructed metadataUrl:", metadataUrl);
+                Potree.loadPointCloud(metadataUrl, modelName, e => {
+                    const scene = viewer.scene;
+                    const pointcloud = e.pointcloud;
+
+                    const material = pointcloud.material;
+                    material.size = 1;
+                    material.pointSizeType = Potree.PointSizeType.ADAPTIVE;
+                    material.shape = Potree.PointShape.SQUARE;
+                    material.activeAttributeName = "rgba";
+
+                    scene.addPointCloud(pointcloud);
+                    viewer.fitToScreen();
+                });
+            })
+            .catch(err => {
+                console.error("Failed to fetch SAS URL or load point cloud:", err);
+                alert("Error loading point cloud. Check console for details.");
+            });
+    </script>
 </body>
 </html>
