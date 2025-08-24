@@ -66,8 +66,11 @@
                 // Debug the raw data.url
                 console.log("Raw data.url:", data.url);
                 
-                // Use the provided URL directly since it includes the SAS token
-                const metadataUrl = `${data.url}/${modelName}/metadata.json`;
+                // Parse the URL and insert the path before the query string
+                const url = new URL(data.url, window.location.origin);
+                const baseUrl = url.origin + url.pathname; // e.g., https://testing10294.blob.core.windows.net/example-potree
+                const queryString = url.search; // e.g., ?Cdslmdj5zmC8KeIqY4cgwLUnv4rfaEY+...
+                const metadataUrl = `${baseUrl}/${modelName}/metadata.json${queryString}`;
                 
                 // Debug the constructed URL
                 console.log("Constructed metadataUrl:", metadataUrl);
