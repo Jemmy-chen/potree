@@ -36,7 +36,7 @@
         const viewer = new Potree.Viewer(document.getElementById("potree_render_area"));
         viewer.setEDLEnabled(true);
         viewer.setFOV(60);
-        viewer.setPointBudget(2_000_000);
+        viewer.setPointBudget(1_000_000); // Reduced to optimize fetch volume
         viewer.loadSettingsFromURL();
         viewer.setDescription("Lion model point cloud");
 
@@ -61,128 +61,82 @@
                 return response.json();
             })
             .then(data => {
-                if (!data.url) {
-                    throw new Error("Invalid SAS data returned - missing url");
+                if (!data.baseUrl || !data.sasToken) {
+                    throw new Error("Invalid SAS data returned - missing baseUrl or sasToken");
                 }
                 
                 console.log("SAS data received:", {
-                    metadataUrl: data.url,
                     baseUrl: data.baseUrl,
+                    sasToken: data.sasToken.substring(0, 20) + "...",
                     model: data.model
                 });
                 
-                // Store SAS info globally for URL overrides
-                window.azureSasToken = data.sasToken;
+                // Store SAS info globally
                 window.azureBaseUrl = data.baseUrl;
+                window.azureSasToken = data.sasToken;
                 window.azureModel = data.model;
                 
-                // More aggressive URL override to handle Potree's path resolution
+                // Construct metadata URL
+                const metadataUrl = `${data.baseUrl}/${data.model}/metadata.json?${data.sasToken}`;
+                console.log("Constructed metadataUrl:", metadataUrl);
+                
+                // Override XMLHttpRequest to fix URLs
                 const originalXHROpen = XMLHttpRequest.prototype.open;
                 XMLHttpRequest.prototype.open = function(method, url, async, user, password) {
                     console.log("Original URL request:", url);
-                    
-                    // Handle any URL that contains our storage domain or looks like a point cloud file
+                    let newUrl = url;
                     if (url.includes('.bin') || url.includes('.las') || url.includes('.laz') || 
-                        url.includes('hierarchy') || url.includes('octree') ||
-                        (url.startsWith('http') && url.includes('blob.core.windows.net'))) {
-                        
-                        let newUrl = url;
-                        
-                        // Fix malformed URLs that contain ../
+                        url.includes('hierarchy') || url.includes('octree') || 
+                        url.includes('blob.core.windows.net')) {
                         if (url.includes('../')) {
                             console.log("Fixing malformed URL with ../");
-                            // Extract the filename from the malformed path
                             const parts = url.split('/');
-                            const filename = parts[parts.length - 1].split('?')[0]; // Remove any existing query params
-                            newUrl = `${data.baseUrl}/${data.model}/${filename}`;
-                        }
-                        // Handle relative paths
-                        else if (!url.startsWith('http')) {
-                            // Remove any leading ./ or /
+                            const filename = parts.pop().split('?')[0];
+                            newUrl = `${window.azureBaseUrl}/${window.azureModel}/${filename}?${window.azureSasToken}`;
+                        } else if (!url.startsWith('http')) {
                             const cleanPath = url.replace(/^\.?\/+/, '');
-                            newUrl = `${data.baseUrl}/${data.model}/${cleanPath}`;
+                            newUrl = `${window.azureBaseUrl}/${window.azureModel}/${cleanPath}?${window.azureSasToken}`;
                         }
-                        // Handle full URLs that might be missing SAS token
-                        else if (url.startsWith('http')) {
-                            // Remove existing query parameters and rebuild
-                            const urlParts = url.split('?')[0];
-                            newUrl = urlParts;
-                        }
-                        
-                        // Always add our SAS token
-                        if (!newUrl.includes('?')) {
-                            newUrl += '?' + data.sasToken;
-                        } else {
-                            // Remove existing query params and add only our SAS token
-                            newUrl = newUrl.split('?')[0] + '?' + data.sasToken;
-                        }
-                        
                         console.log("Fixed URL:", newUrl);
-                        url = newUrl;
                     }
-                    
-                    return originalXHROpen.call(this, method, url, async, user, password);
+                    return originalXHROpen.call(this, method, newUrl, async, user, password);
                 };
-                
-                // Also override fetch for modern Potree versions
+
+                // Override fetch for consistency
                 const originalFetch = window.fetch;
-                window.fetch = function(url, options) {
-                    if (typeof url === 'string') {
-                        console.log("Fetch request:", url);
-                        
-                        if (url.includes('.bin') || url.includes('.las') || url.includes('.laz') || 
-                            url.includes('hierarchy') || url.includes('octree') ||
-                            (url.startsWith('http') && url.includes('blob.core.windows.net'))) {
-                            
-                            let newUrl = url;
-                            
-                            // Fix malformed URLs
-                            if (url.includes('../')) {
-                                console.log("Fixing malformed fetch URL with ../");
-                                const parts = url.split('/');
-                                const filename = parts[parts.length - 1].split('?')[0];
-                                newUrl = `${data.baseUrl}/${data.model}/${filename}`;
-                            }
-                            else if (!url.startsWith('http')) {
-                                const cleanPath = url.replace(/^\.?\/+/, '');
-                                newUrl = `${data.baseUrl}/${data.model}/${cleanPath}`;
-                            }
-                            else if (url.startsWith('http')) {
-                                newUrl = url.split('?')[0];
-                            }
-                            
-                            // Add SAS token
-                            if (!newUrl.includes('?')) {
-                                newUrl += '?' + data.sasToken;
-                            } else {
-                                newUrl = newUrl.split('?')[0] + '?' + data.sasToken;
-                            }
-                            
-                            console.log("Fixed fetch URL:", newUrl);
-                            url = newUrl;
+                window.fetch = async function(url, options) {
+                    console.log("Fetch request:", url);
+                    let newUrl = url;
+                    if (typeof url === 'string' && (url.includes('.bin') || url.includes('.las') || url.includes('.laz') || 
+                        url.includes('hierarchy') || url.includes('octree') || url.includes('blob.core.windows.net'))) {
+                        if (url.includes('../')) {
+                            console.log("Fixing malformed fetch URL with ../");
+                            const parts = url.split('/');
+                            const filename = parts.pop().split('?')[0];
+                            newUrl = `${window.azureBaseUrl}/${window.azureModel}/${filename}?${window.azureSasToken}`;
+                        } else if (!url.startsWith('http')) {
+                            const cleanPath = url.replace(/^\.?\/+/, '');
+                            newUrl = `${window.azureBaseUrl}/${window.azureModel}/${cleanPath}?${window.azureSasToken}`;
                         }
+                        console.log("Fixed fetch URL:", newUrl);
                     }
-                    
-                    return originalFetch.call(this, url, options);
+                    return originalFetch.call(this, newUrl, options);
                 };
-                
-                console.log("Loading point cloud from metadata:", data.url);
-                
-                // Load point cloud using the metadata.json URL
-                Potree.loadPointCloud(data.url, modelName, e => {
+
+                // Load point cloud with a single attempt
+                Potree.loadPointCloud(metadataUrl, modelName, e => {
                     console.log("Point cloud loaded successfully");
-                    
                     const scene = viewer.scene;
                     const pointcloud = e.pointcloud;
-
                     const material = pointcloud.material;
                     material.size = 1;
                     material.pointSizeType = Potree.PointSizeType.ADAPTIVE;
                     material.shape = Potree.PointShape.SQUARE;
                     material.activeAttributeName = "rgba";
-
                     scene.addPointCloud(pointcloud);
                     viewer.fitToScreen();
+                }, error => {
+                    console.error("Point cloud load failed:", error);
                 });
             })
             .catch(err => {
