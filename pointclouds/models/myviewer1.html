@@ -31,7 +31,7 @@
         const viewer = new Potree.Viewer(document.getElementById("potree_render_area"));
         viewer.setEDLEnabled(true);
         viewer.setFOV(60);
-        viewer.setPointBudget(10_000_000); // Increased for 105M points
+        viewer.setPointBudget(15_000_000); // Increased for better sampling
         viewer.loadSettingsFromURL();
         viewer.setDescription("Lion model point cloud");
         viewer.loadGUI(() => {
@@ -55,18 +55,16 @@
                 const metadataUrl = `${data.baseUrl}/${data.model}/metadata.json?${data.sasToken}`;
                 const octreeUrl = `${data.baseUrl}/${data.model}/octree.bin?${data.sasToken}`;
                 const hierarchyUrl = `${data.baseUrl}/${data.model}/hierarchy.bin?${data.sasToken}`;
-                // Predefine correct URLs for Potree
-                const originalLoad = Potree.loadPointCloud;
-                Potree.loadPointCloud = function(url, name, callback, errorCallback) {
-                    if (url === metadataUrl) {
-                        return originalLoad.call(this, url, name, (e) => {
-                            const pointcloud = e.pointcloud;
-                            pointcloud.basePath = `${window.azureBaseUrl}/${window.azureModel}/`;
-                            pointcloud.url = octreeUrl;
-                            callback(e);
-                        }, errorCallback);
+                // Override Potree loader for all node requests
+                const originalLoad = Potree.PointCloudOctree.prototype.load;
+                Potree.PointCloudOctree.prototype.load = function(node) {
+                    if (node.url && node.url.includes('../')) {
+                        console.log("Original Node URL:", node.url);
+                        node.url = node.url.replace('../', `${window.azureBaseUrl}/${window.azureModel}/`);
+                        node.url += `?${window.azureSasToken}`;
+                        console.log("Corrected Node URL:", node.url);
                     }
-                    return originalLoad.call(this, url, name, callback, errorCallback);
+                    return originalLoad.call(this, node);
                 };
                 const originalFetch = window.fetch;
                 window.fetch = async function(url, options) {
