@@ -59,13 +59,24 @@
         }
 
         const data = await response.json();
-        const metadataUrl = data.urls.metadataUrl;
+        const { metadataUrl, octreeUrl, hierarchyUrl } = data.urls;
 
-        console.log("Loading point cloud from:", metadataUrl);
+        console.log("🔗 Metadata URL:", metadataUrl);
+        console.log("🔗 Octree URL:", octreeUrl);
+        console.log("🔗 Hierarchy URL:", hierarchyUrl);
 
+        // Load the point cloud from metadata
         Potree.loadPointCloud(metadataUrl, modelName, e => {
-          console.log("Point cloud loaded successfully.");
           const pointcloud = e.pointcloud;
+          const geometry = pointcloud.pcoGeometry;
+
+          // Inject actual SAS URLs to override broken relative paths
+          geometry.octreeDir = octreeUrl.replace("/octree.bin", "");
+          geometry.hierarchyStepSize = 5;
+
+          geometry.hierarchyUrl = hierarchyUrl; // Tell Potree where to load hierarchy.bin
+          geometry.octreeUrl = octreeUrl;       // Not used directly, but good for reference
+
           const material = pointcloud.material;
           material.size = 2;
           material.pointSizeType = Potree.PointSizeType.FIXED;
@@ -74,13 +85,14 @@
 
           viewer.scene.addPointCloud(pointcloud);
           viewer.fitToScreen();
+          console.log("✅ Point cloud added to viewer");
         }, err => {
-          console.error("Point cloud loading failed:", err);
-          alert("Failed to load point cloud. Check the console for details.");
+          console.error("❌ Failed to load point cloud:", err);
+          alert("Failed to load point cloud. Check console for details.");
         });
 
       } catch (error) {
-        console.error("Viewer error:", error);
+        console.error("❌ Viewer load error:", error);
         alert("Error loading viewer or SAS data. See console.");
       }
     })();
