@@ -1,20 +1,3 @@
-let storageBlob;
-try {
-  storageBlob = require("@azure/storage-blob");
-} catch (err) {
-  module.exports = async function (context, req) {
-    context.log.error("Failed to load @azure/storage-blob", { message: err.message, stack: err.stack });
-    context.res = { 
-      status: 500,
-      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
-      body: JSON.stringify({ error: "Module load failure", message: err.message })
-    };
-  };
-  return;
-}
-
-const { generateBlobSASQueryParameters, StorageSharedKeyCredential, ContainerSASPermissions } = require("@azure/storage-blob");
-
 module.exports = async function (context, req) {
   context.log("=== DEBUG FUNCTION START ===");
   
@@ -35,7 +18,7 @@ module.exports = async function (context, req) {
     if (!accountName) {
       context.res = {
         status: 200,
-        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           debug: true,
           error: "AZURE_STORAGE_ACCOUNT missing",
@@ -48,7 +31,7 @@ module.exports = async function (context, req) {
     if (!sasToken) {
       context.res = {
         status: 200,
-        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           debug: true,
           error: "SAS_TOKEN missing",
@@ -59,22 +42,27 @@ module.exports = async function (context, req) {
       return;
     }
 
+    // Test URL construction
+    const metadataUrl = `https://${accountName}.blob.core.windows.net/${containerName}/${model}/metadata.json?${sasToken}`;
     const baseUrl = `https://${accountName}.blob.core.windows.net/${containerName}`;
     
     context.log("URLs constructed:", {
+      metadataUrl: metadataUrl.substring(0, 100) + "...",
       baseUrl: baseUrl
     });
 
     const responseData = {
       debug: true,
       success: true,
+      url: metadataUrl,
       baseUrl: baseUrl,
       sasToken: sasToken,
       model: model,
       info: {
         accountName: accountName,
         containerName: containerName,
-        sasTokenLength: sasToken.length
+        sasTokenLength: sasToken.length,
+        metadataUrlLength: metadataUrl.length
       }
     };
 
@@ -82,7 +70,7 @@ module.exports = async function (context, req) {
 
     context.res = {
       status: 200,
-      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(responseData)
     };
 
@@ -92,7 +80,7 @@ module.exports = async function (context, req) {
     context.log.error("=== DEBUG FUNCTION ERROR ===", err);
     context.res = {
       status: 200,
-      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         debug: true,
         error: "Exception occurred",
