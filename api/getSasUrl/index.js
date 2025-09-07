@@ -1,81 +1,83 @@
+let storageBlob;
+try {
+  storageBlob = require("@azure/storage-blob");
+} catch (err) {
+  module.exports = async function (context, req) {
+    context.log.error("Failed to load @azure/storage-blob", { message: err.message });
+    context.res = {
+      status: 500,
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*"
+      },
+      body: JSON.stringify({ error: "Module load failure", message: err.message })
+    };
+  };
+  return;
+}
+
 module.exports = async function (context, req) {
-  context.log("=== DEBUG FUNCTION START ===");
-  
+  context.log("=== GET SAS URL FUNCTION START ===");
+
   try {
     const model = req.query.model || "myviewer1";
     const containerName = "example-potree";
+
     const accountName = process.env.AZURE_STORAGE_ACCOUNT;
     const sasToken = process.env.SAS_TOKEN;
 
-    // Log environment variables for debugging
-    context.log("Environment variables:", {
-      accountName: accountName || "MISSING",
-      sasToken: sasToken ? `PRESENT (length: ${sasToken.length})` : "MISSING",
-      model,
-      containerName
-    });
-
-    // Validate environment variables
-    if (!accountName) {
-      throw new Error("AZURE_STORAGE_ACCOUNT environment variable is missing");
-    }
-    if (!sasToken) {
-      throw new Error("SAS_TOKEN environment variable is missing");
-    }
-
-    // Basic SAS token format validation (should contain sp, sv, sr, sig)
-    if (!sasToken.includes("sp=") || !sasToken.includes("sv=") || !sasToken.includes("sr=") || !sasToken.includes("sig=")) {
-      throw new Error("Invalid SAS token format");
+    if (!accountName || !sasToken) {
+      context.res = {
+        status: 400,
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*"
+        },
+        body: JSON.stringify({
+          error: "Missing environment variables",
+          accountName: accountName || "MISSING",
+          sasToken: sasToken ? "PRESENT" : "MISSING"
+        })
+      };
+      return;
     }
 
     const baseUrl = `https://${accountName}.blob.core.windows.net/${containerName}`;
-    context.log("Base URL constructed:", { baseUrl });
-
-    // Construct URLs for debugging
     const metadataUrl = `${baseUrl}/${model}/metadata.json?${sasToken}`;
     const octreeUrl = `${baseUrl}/${model}/octree.bin?${sasToken}`;
     const hierarchyUrl = `${baseUrl}/${model}/hierarchy.bin?${sasToken}`;
 
-    const responseData = {
-      debug: true,
-      success: true,
-      baseUrl,
-      sasToken,
-      model,
-      urls: {
-        metadataUrl,
-        octreeUrl,
-        hierarchyUrl
+    context.res = {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*"
       },
-      info: {
-        accountName,
-        containerName,
-        sasTokenLength: sasToken.length
+      body: {
+        success: true,
+        model: model,
+        urls: {
+          metadataUrl,
+          octreeUrl,
+          hierarchyUrl
+        }
       }
     };
 
-    context.log("Response data:", responseData);
+    context.log("=== GET SAS URL FUNCTION SUCCESS ===");
 
-    context.res = {
-      status: 200,
-      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
-      body: JSON.stringify(responseData)
-    };
-
-    context.log("=== DEBUG FUNCTION END SUCCESS ===");
   } catch (err) {
-    context.log.error("=== DEBUG FUNCTION ERROR ===", {
-      message: err.message,
-      stack: err.stack
-    });
+    context.log.error("Function error:", err);
     context.res = {
-      status: 500, // Use 500 for server errors
-      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
-      body: JSON.stringify({
-        debug: true,
-        error: "Server error",
+      status: 500,
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*"
+      },
+      body: {
+        error: "Exception occurred",
         message: err.message
-      })
+      }
     };
   }
 };

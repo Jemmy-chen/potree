@@ -1,91 +1,89 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Potree Viewer</title>
-    <link rel="stylesheet" href="./libs/potree/potree.css" />
-    <link rel="stylesheet" href="./libs/jquery-ui/jquery-ui.min.css" />
-    <link rel="stylesheet" href="./libs/openlayers3/ol.css" />
-    <link rel="stylesheet" href="./libs/spectrum/spectrum.css" />
-    <link rel="stylesheet" href="./libs/jstree/themes/mixed/style.css" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Potree Viewer</title>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="./libs/potree/potree.css" />
+  <link rel="stylesheet" href="./libs/jquery-ui/jquery-ui.min.css" />
+  <link rel="stylesheet" href="./libs/openlayers3/ol.css" />
+  <link rel="stylesheet" href="./libs/spectrum/spectrum.css" />
+  <link rel="stylesheet" href="./libs/jstree/themes/mixed/style.css" />
 </head>
+
 <body>
-    <div class="potree_container" style="position: absolute; width: 100%; height: 100%; left: 0; top: 0;">
-        <div id="potree_render_area" style="background-image: url('./libs/potree/resources/images/background.jpg');"></div>
-        <div id="potree_sidebar_container"></div>
-    </div>
+  <div class="potree_container" style="position: absolute; width: 100%; height: 100%; left: 0; top: 0;">
+    <div id="potree_render_area" style="background-image: url('./libs/potree/resources/images/background.jpg');"></div>
+    <div id="potree_sidebar_container"></div>
+  </div>
 
-    <script src="./libs/jquery/jquery-3.1.1.min.js"></script>
-    <script src="./libs/spectrum/spectrum.js"></script>
-    <script src="./libs/jquery-ui/jquery-ui.min.js"></script>
-    <script src="./libs/other/BinaryHeap.js"></script>
-    <script src="./libs/tween/tween.min.js"></script>
-    <script src="./libs/d3/d3.js"></script>
-    <script src="./libs/proj4/proj4.js"></script>
-    <script src="./libs/openlayers3/ol.js"></script>
-    <script src="./libs/i18next/i18next.js"></script>
-    <script src="./libs/jstree/jstree.js"></script>
-    <script src="./libs/potree/potree.js"></script>
-    <script src="./libs/plasio/js/laslaz.js"></script>
+  <!-- Scripts -->
+  <script src="./libs/jquery/jquery-3.1.1.min.js"></script>
+  <script src="./libs/spectrum/spectrum.js"></script>
+  <script src="./libs/jquery-ui/jquery-ui.min.js"></script>
+  <script src="./libs/other/BinaryHeap.js"></script>
+  <script src="./libs/tween/tween.min.js"></script>
+  <script src="./libs/d3/d3.js"></script>
+  <script src="./libs/proj4/proj4.js"></script>
+  <script src="./libs/openlayers3/ol.js"></script>
+  <script src="./libs/i18next/i18next.js"></script>
+  <script src="./libs/jstree/jstree.js"></script>
+  <script src="./libs/potree/potree.js"></script>
+  <script src="./libs/plasio/js/laslaz.js"></script>
 
-    <script>
-      (async () => {
-        try {
-          const viewer = new Potree.Viewer(document.getElementById("potree_render_area"));
-          viewer.setEDLEnabled(true);
-          viewer.setFOV(60);
-          viewer.setPointBudget(15_000_000);
-          viewer.loadSettingsFromURL();
-          viewer.setDescription("Lion model point cloud");
-          viewer.loadGUI(() => {
-            viewer.setLanguage('en');
-            $("#menu_appearance").next().show();
-            $("#menu_tools").next().show();
-            $("#menu_clipping").next().show();
-            viewer.toggleSidebar();
-          });
+  <script>
+    (async () => {
+      try {
+        const viewer = new Potree.Viewer(document.getElementById("potree_render_area"));
+        viewer.setEDLEnabled(true);
+        viewer.setFOV(60);
+        viewer.setPointBudget(15_000_000);
+        viewer.loadSettingsFromURL();
+        viewer.setDescription("Lion model point cloud");
 
-          const modelName = "myviewer1";
+        viewer.loadGUI(() => {
+          viewer.setLanguage("en");
+          $("#menu_appearance").next().show();
+          $("#menu_tools").next().show();
+          $("#menu_clipping").next().show();
+          viewer.toggleSidebar();
+        });
 
-          // Fetch SAS token + base URL from your backend
-          const response = await fetch(`/api/getSasUrl?model=${modelName}`);
-          if (!response.ok) {
-            throw new Error(`Failed to fetch SAS URL: HTTP ${response.status}`);
-          }
-          const data = await response.json();
+        const modelName = "myviewer1";
+        const response = await fetch(`/api/getSasUrl?model=${modelName}`);
 
-          if (!data.baseUrl || !data.sasToken) {
-            throw new Error("Invalid SAS data received from server");
-          }
-
-          // Compose base URL with SAS token for the whole model folder
-          const baseSasUrl = `${data.baseUrl}/${data.model}/?${data.sasToken}`;
-          console.log("Base SAS URL:", baseSasUrl);
-
-          // Load point cloud (Potree will append metadata.json, octree.bin, hierarchy.bin relative to this)
-          Potree.loadPointCloud(baseSasUrl, modelName, e => {
-            console.log("Point cloud loaded successfully:", e);
-            const pointcloud = e.pointcloud;
-            const material = pointcloud.material;
-            material.size = 2;
-            material.pointSizeType = Potree.PointSizeType.FIXED;
-            material.shape = Potree.PointShape.CIRCLE;
-            material.activeAttributeName = "rgba";
-
-            viewer.scene.addPointCloud(pointcloud);
-            viewer.fitToScreen();
-          }, error => {
-            console.error("Point cloud load failed:", error);
-            console.log("Failed URL:", baseSasUrl);
-            alert("Failed to load point cloud. Check console for details.");
-          });
-
-        } catch (err) {
-          console.error("Error loading Potree viewer or SAS URL:", err);
-          alert("Error loading point cloud. Check console for details.");
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${await response.text()}`);
         }
-      })();
-    </script>
+
+        const data = await response.json();
+        const metadataUrl = data.urls.metadataUrl;
+
+        console.log("Loading point cloud from:", metadataUrl);
+
+        Potree.loadPointCloud(metadataUrl, modelName, e => {
+          console.log("Point cloud loaded successfully.");
+          const pointcloud = e.pointcloud;
+          const material = pointcloud.material;
+          material.size = 2;
+          material.pointSizeType = Potree.PointSizeType.FIXED;
+          material.shape = Potree.PointShape.CIRCLE;
+          material.activeAttributeName = "rgba";
+
+          viewer.scene.addPointCloud(pointcloud);
+          viewer.fitToScreen();
+        }, err => {
+          console.error("Point cloud loading failed:", err);
+          alert("Failed to load point cloud. Check the console for details.");
+        });
+
+      } catch (error) {
+        console.error("Viewer error:", error);
+        alert("Error loading viewer or SAS data. See console.");
+      }
+    })();
+  </script>
 </body>
 </html>
