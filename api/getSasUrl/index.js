@@ -13,7 +13,7 @@ try {
   return;
 }
 
-// You don't need these imports if you don't generate SAS here, but no harm keeping
+// Optional: only needed if you later generate SAS dynamically
 const { generateBlobSASQueryParameters, StorageSharedKeyCredential, ContainerSASPermissions } = require("@azure/storage-blob");
 
 module.exports = async function (context, req) {
@@ -24,7 +24,7 @@ module.exports = async function (context, req) {
     const containerName = "example-potree";
     
     const accountName = process.env.AZURE_STORAGE_ACCOUNT;
-    const sasToken = process.env.SAS_TOKEN; // The SAS token string without leading ?
+    const sasToken = process.env.SAS_TOKEN; // SAS token string without leading ?
 
     context.log("Environment variables:", {
       accountName: accountName || "MISSING",
@@ -63,14 +63,17 @@ module.exports = async function (context, req) {
     // Ensure sasToken starts with '?'
     const token = sasToken.startsWith("?") ? sasToken : "?" + sasToken;
 
-    // Compose full URL with model path and SAS token appended
-    const fullUrl = `https://${accountName}.blob.core.windows.net/${containerName}/${model}${token}`;
+    // ✅ Build full URL pointing to metadata.json, not just the folder
+    const fullUrl = `https://${accountName}.blob.core.windows.net/${containerName}/${model}/metadata.json${token}`;
 
     context.log("Full URL with SAS:", fullUrl);
 
     context.res = {
       status: 200,
-      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+      headers: { 
+        "Content-Type": "application/json", 
+        "Access-Control-Allow-Origin": "*" 
+      },
       body: JSON.stringify({
         success: true,
         model: model,
