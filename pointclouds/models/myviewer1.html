@@ -15,6 +15,8 @@
         <div id="potree_render_area" style="background-image: url('./libs/potree/resources/images/background.jpg');"></div>
         <div id="potree_sidebar_container"></div>
     </div>
+
+    <!-- Libraries -->
     <script src="./libs/jquery/jquery-3.1.1.min.js"></script>
     <script src="./libs/spectrum/spectrum.js"></script>
     <script src="./libs/jquery-ui/jquery-ui.min.js"></script>
@@ -27,7 +29,40 @@
     <script src="./libs/jstree/jstree.js"></script>
     <script src="./libs/potree/potree.js"></script>
     <script src="./libs/plasio/js/laslaz.js"></script>
+
     <script>
+        // 🔧 Patch Potree XHR to ensure SAS comes at the END of URL
+        (function () {
+            const origXHR = Potree.XHRFactory.createXMLHttpRequest;
+            Potree.XHRFactory.createXMLHttpRequest = function () {
+                const xhr = origXHR();
+                const origOpen = xhr.open;
+
+                xhr.open = function (method, url, async) {
+                    try {
+                        // Detect broken URLs like "...?sig=xxx/../hierarchy.bin"
+                        if (url.includes("?") && url.match(/sig=[^/]+\/\.\./)) {
+                            const [beforeQuery, afterQuery] = url.split("?");
+                            const [sasPart, relativePath] = afterQuery.split("/../");
+
+                            const fixedUrl = beforeQuery.replace(/metadata\.json$/, "") 
+                                + "/../" + relativePath 
+                                + "?" + sasPart;
+
+                            console.log("🔧 Fixed Potree URL:", url, "➡", fixedUrl);
+                            url = fixedUrl;
+                        }
+                    } catch (err) {
+                        console.warn("URL fix failed:", err);
+                    }
+                    return origOpen.call(this, method, url, async);
+                };
+
+                return xhr;
+            };
+        })();
+
+        // === Potree viewer setup ===
         const viewer = new Potree.Viewer(document.getElementById("potree_render_area"));
         viewer.setEDLEnabled(true);
         viewer.setFOV(60);
@@ -41,7 +76,9 @@
             $("#menu_clipping").next().show();
             viewer.toggleSidebar();
         });
+
         const modelName = "myviewer1";
+
         fetch(`/api/getSasUrl?model=${modelName}`)
             .then(async response => {
                 if (!response.ok) throw new Error(`HTTP ${response.status}: ${await response.text()}`);
@@ -49,24 +86,23 @@
             })
             .then(data => {
                 if (!data.baseUrl || !data.sasToken) throw new Error("Invalid SAS data");
-                window.azureBaseUrl = data.baseUrl;
-                window.azureSasToken = data.sasToken;
-                window.azureModel = data.model;
+
                 const metadataUrl = `${data.baseUrl}/${data.model}/metadata.json?${data.sasToken}`;
-                const octreeUrl = `${data.baseUrl}/${data.model}/octree.bin?${data.sasToken}`;
-                const hierarchyUrl = `${data.baseUrl}/${data.model}/hierarchy.bin?${data.sasToken}`;
+
                 Potree.loadPointCloud(metadataUrl, modelName, e => {
-                    console.log("Point cloud loaded successfully");
+                    console.log("✅ Point cloud loaded successfully");
                     const scene = viewer.scene;
                     const pointcloud = e.pointcloud;
                     const material = pointcloud.material;
+
                     material.size = 2;
                     material.pointSizeType = Potree.PointSizeType.FIXED;
                     material.shape = Potree.PointShape.CIRCLE;
                     material.activeAttributeName = "rgba";
+
                     scene.addPointCloud(pointcloud);
                     viewer.fitToScreen();
-                }, error => console.error("Point cloud load failed:", error));
+                }, error => console.error("❌ Point cloud load failed:", error));
             })
             .catch(err => {
                 console.error("Failed to fetch SAS URL or load point cloud:", err);
