@@ -61,9 +61,12 @@ module.exports = async function (context, req) {
 
     const baseUrl = `https://${accountName}.blob.core.windows.net/${containerName}`;
     
-    context.log("URLs constructed:", {
-      baseUrl: baseUrl
-    });
+    context.log("URLs constructed:", { baseUrl });
+
+    // Construct URLs for important files with SAS tokens
+    const metadataUrl = `${baseUrl}/${model}/metadata.json?${sasToken}`;
+    const octreeUrl = `${baseUrl}/${model}/octree.bin?${sasToken}`;
+    const hierarchyUrl = `${baseUrl}/${model}/hierarchy.bin?${sasToken}`;
 
     const responseData = {
       debug: true,
@@ -71,6 +74,11 @@ module.exports = async function (context, req) {
       baseUrl: baseUrl,
       sasToken: sasToken,
       model: model,
+      urls: {
+        metadataUrl,
+        octreeUrl,
+        hierarchyUrl
+      },
       info: {
         accountName: accountName,
         containerName: containerName,
