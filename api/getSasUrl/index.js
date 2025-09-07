@@ -13,7 +13,7 @@ try {
   return;
 }
 
-// Optional: only needed if you later generate SAS dynamically
+// Optional: only needed if you generate SAS dynamically in future
 const { generateBlobSASQueryParameters, StorageSharedKeyCredential, ContainerSASPermissions } = require("@azure/storage-blob");
 
 module.exports = async function (context, req) {
@@ -63,8 +63,8 @@ module.exports = async function (context, req) {
     // Ensure sasToken starts with '?'
     const token = sasToken.startsWith("?") ? sasToken : "?" + sasToken;
 
-    // ✅ Build full URL pointing to metadata.json, not just the folder
-    const fullUrl = `https://${accountName}.blob.core.windows.net/${containerName}/${model}/metadata.json${token}`;
+    // ✅ Return folder URL (not metadata.json)
+    const fullUrl = `https://${accountName}.blob.core.windows.net/${containerName}/${model}${token}`;
 
     context.log("Full URL with SAS:", fullUrl);
 
