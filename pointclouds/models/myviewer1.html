@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Potree Viewer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Potree Viewer with SAS URL</title>
   <link rel="stylesheet" href="./libs/potree/potree.css" />
   <link rel="stylesheet" href="./libs/jquery-ui/jquery-ui.min.css" />
   <link rel="stylesheet" href="./libs/openlayers3/ol.css" />
@@ -50,30 +50,19 @@
       const modelName = "myviewer1";
 
       try {
-        // Step 1: Fetch SAS config from backend API
+        // Fetch SAS URL from backend
         const response = await fetch(`/api/getSasUrl?model=${modelName}`);
         if (!response.ok) throw new Error(`HTTP error ${response.status}`);
         const data = await response.json();
 
-        const baseUrl = data.baseUrl; // no SAS token here
-        const token = data.sasToken.startsWith("?") ? data.sasToken : "?" + data.sasToken;
+        if (!data.url) throw new Error("Missing URL in backend response");
 
-        // Construct model path without token for octreeDir
-        const modelPath = `${baseUrl}/${modelName}`;
+        const pointcloudUrl = data.url;
 
-        // Step 2: Fetch metadata.json WITH SAS token appended
-        const metadataUrl = `${modelPath}/metadata.json${token}`;
-        const metadataResponse = await fetch(metadataUrl);
-        if (!metadataResponse.ok) throw new Error("Failed to fetch metadata.json");
-        const metadata = await metadataResponse.json();
+        console.log("Loading point cloud from URL:", pointcloudUrl);
 
-        // Step 3: Patch metadata paths to absolute URLs with SAS token appended at end
-        metadata.octreeDir = modelPath; // no token here!
-        metadata.hierarchyPath = `${modelPath}/hierarchy.bin${token}`;
-        metadata.octreePath = `${modelPath}/octree.bin${token}`;
-
-        // Step 4: Load point cloud using patched metadata
-        Potree.loadPointCloud(metadata, modelName, e => {
+        // Load point cloud directly with full URL (includes SAS token)
+        Potree.loadPointCloud(pointcloudUrl, modelName, e => {
           const pointcloud = e.pointcloud;
           const material = pointcloud.material;
 

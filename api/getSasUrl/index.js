@@ -13,6 +13,7 @@ try {
   return;
 }
 
+// You don't need these imports if you don't generate SAS here, but no harm keeping
 const { generateBlobSASQueryParameters, StorageSharedKeyCredential, ContainerSASPermissions } = require("@azure/storage-blob");
 
 module.exports = async function (context, req) {
@@ -23,8 +24,8 @@ module.exports = async function (context, req) {
     const containerName = "example-potree";
     
     const accountName = process.env.AZURE_STORAGE_ACCOUNT;
-    const sasToken = process.env.SAS_TOKEN;
-    
+    const sasToken = process.env.SAS_TOKEN; // The SAS token string without leading ?
+
     context.log("Environment variables:", {
       accountName: accountName || "MISSING",
       sasToken: sasToken ? "PRESENT (length: " + sasToken.length + ")" : "MISSING",
@@ -34,7 +35,7 @@ module.exports = async function (context, req) {
 
     if (!accountName) {
       context.res = {
-        status: 200,
+        status: 400,
         headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
         body: JSON.stringify({ 
           debug: true,
@@ -47,7 +48,7 @@ module.exports = async function (context, req) {
 
     if (!sasToken) {
       context.res = {
-        status: 200,
+        status: 400,
         headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
         body: JSON.stringify({ 
           debug: true,
@@ -59,31 +60,22 @@ module.exports = async function (context, req) {
       return;
     }
 
-    const baseUrl = `https://${accountName}.blob.core.windows.net/${containerName}`;
-    
-    context.log("URLs constructed:", {
-      baseUrl: baseUrl
-    });
+    // Ensure sasToken starts with '?'
+    const token = sasToken.startsWith("?") ? sasToken : "?" + sasToken;
 
-    const responseData = {
-      debug: true,
-      success: true,
-      baseUrl: baseUrl,
-      sasToken: sasToken,
-      model: model,
-      info: {
-        accountName: accountName,
-        containerName: containerName,
-        sasTokenLength: sasToken.length
-      }
-    };
+    // Compose full URL with model path and SAS token appended
+    const fullUrl = `https://${accountName}.blob.core.windows.net/${containerName}/${model}${token}`;
 
-    context.log("Response data keys:", Object.keys(responseData));
+    context.log("Full URL with SAS:", fullUrl);
 
     context.res = {
       status: 200,
       headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
-      body: JSON.stringify(responseData)
+      body: JSON.stringify({
+        success: true,
+        model: model,
+        url: fullUrl
+      })
     };
 
     context.log("=== DEBUG FUNCTION END SUCCESS ===");
@@ -91,7 +83,7 @@ module.exports = async function (context, req) {
   } catch (err) {
     context.log.error("=== DEBUG FUNCTION ERROR ===", err);
     context.res = {
-      status: 200,
+      status: 500,
       headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
       body: JSON.stringify({
         debug: true,
