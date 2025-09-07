@@ -16,7 +16,7 @@
     <div id="potree_sidebar_container"></div>
   </div>
 
-  <!-- scripts -->
+  <!-- Libraries -->
   <script src="./libs/jquery/jquery-3.1.1.min.js"></script>
   <script src="./libs/spectrum/spectrum.js"></script>
   <script src="./libs/jquery-ui/jquery-ui.min.js"></script>
@@ -31,52 +31,65 @@
   <script src="./libs/plasio/js/laslaz.js"></script>
 
   <script>
-    const viewer = new Potree.Viewer(document.getElementById("potree_render_area"));
-    viewer.setEDLEnabled(true);
-    viewer.setFOV(60);
-    viewer.setPointBudget(15_000_000);
-    viewer.loadSettingsFromURL();
-    viewer.setDescription("Point cloud viewer");
-    viewer.loadGUI(() => {
-      viewer.setLanguage('en');
-      $("#menu_appearance").next().show();
-      $("#menu_tools").next().show();
-      $("#menu_clipping").next().show();
-      viewer.toggleSidebar();
-    });
+    async function initViewer() {
+      const viewer = new Potree.Viewer(document.getElementById("potree_render_area"));
+      viewer.setEDLEnabled(true);
+      viewer.setFOV(60);
+      viewer.setPointBudget(15_000_000);
+      viewer.loadSettingsFromURL();
+      viewer.setDescription("Azure Blob Potree Model");
 
-    const modelName = "myviewer1";
+      viewer.loadGUI(() => {
+        viewer.setLanguage('en');
+        $("#menu_appearance").next().show();
+        $("#menu_tools").next().show();
+        $("#menu_clipping").next().show();
+        viewer.toggleSidebar();
+      });
 
-    // Get SAS from API, then build metadata.json URL
-    fetch(`https://black-stone-00d678100.1.azurestaticapps.net/api/getSasUrl?model=${modelName}`)
-      .then(r => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
-      .then(data => {
-        if (!data.baseUrl || !data.sasToken) throw new Error("Invalid SAS data");
+      const modelName = "myviewer1";
 
-        const baseUrl = `${data.baseUrl}/${data.model}`;
-        const safeToken = data.sasToken.startsWith("?") ? data.sasToken : "?" + data.sasToken;
+      try {
+        // 1. Fetch SAS info from SWA API
+        const sasResponse = await fetch(`https://black-stone-00d678100.1.azurestaticapps.net/api/getSasUrl?model=${modelName}`);
+        if (!sasResponse.ok) throw new Error("Failed to fetch SAS URL");
+        const sasData = await sasResponse.json();
 
-        // Potree will fetch metadata.json, which points to hierarchy.bin & octree.bin
-        const metadataUrl = `${baseUrl}/metadata.json${safeToken}`;
+        const baseUrl = `${sasData.baseUrl}/${sasData.model}`;
+        const safeToken = sasData.sasToken.startsWith("?") ? sasData.sasToken : "?" + sasData.sasToken;
 
-        Potree.loadPointCloud(metadataUrl, modelName, e => {
+        // 2. Fetch metadata.json from blob
+        const metaResponse = await fetch(`${baseUrl}/metadata.json${safeToken}`);
+        if (!metaResponse.ok) throw new Error("Failed to fetch metadata.json");
+        const metadata = await metaResponse.json();
+
+        // 3. Patch hierarchy & octree paths with absolute SAS URLs
+        metadata.octreeDir = baseUrl;
+        metadata.hierarchyPath = `${baseUrl}/hierarchy.bin${safeToken}`;
+        metadata.octreePath = `${baseUrl}/octree.bin${safeToken}`;
+
+        // 4. Load point cloud from patched metadata
+        Potree.loadPointCloud(metadata, modelName, e => {
+          console.log("✅ Point cloud loaded successfully");
           const pointcloud = e.pointcloud;
-          pointcloud.material.size = 2;
-          pointcloud.material.pointSizeType = Potree.PointSizeType.FIXED;
-          pointcloud.material.shape = Potree.PointShape.CIRCLE;
-          pointcloud.material.activeAttributeName = "rgba";
+          const material = pointcloud.material;
+
+          material.size = 2;
+          material.pointSizeType = Potree.PointSizeType.FIXED;
+          material.shape = Potree.PointShape.CIRCLE;
+          material.activeAttributeName = "rgba";
 
           viewer.scene.addPointCloud(pointcloud);
           viewer.fitToScreen();
-        });
-      })
-      .catch(err => {
-        console.error("Failed to load SAS or point cloud:", err);
+        }, error => console.error("❌ Point cloud load failed:", error));
+
+      } catch (err) {
+        console.error("⚠️ Error initializing Potree:", err);
         alert("Error loading point cloud: " + err.message);
-      });
+      }
+    }
+
+    initViewer();
   </script>
 </body>
 </html>
