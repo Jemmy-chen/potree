@@ -4,17 +4,20 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Potree Viewer</title>
+
     <link rel="stylesheet" href="./libs/potree/potree.css">
     <link rel="stylesheet" href="./libs/jquery-ui/jquery-ui.min.css">
     <link rel="stylesheet" href="./libs/openlayers3/ol.css">
     <link rel="stylesheet" href="./libs/spectrum/spectrum.css">
     <link rel="stylesheet" href="./libs/jstree/themes/mixed/style.css">
 </head>
+
 <body>
     <div class="potree_container" style="position: absolute; width: 100%; height: 100%; left: 0; top: 0;">
         <div id="potree_render_area" style="background-image: url('./libs/potree/resources/images/background.jpg');"></div>
         <div id="potree_sidebar_container"></div>
     </div>
+
     <script src="./libs/jquery/jquery-3.1.1.min.js"></script>
     <script src="./libs/spectrum/spectrum.js"></script>
     <script src="./libs/jquery-ui/jquery-ui.min.js"></script>
@@ -27,13 +30,16 @@
     <script src="./libs/jstree/jstree.js"></script>
     <script src="./libs/potree/potree.js"></script>
     <script src="./libs/plasio/js/laslaz.js"></script>
+
     <script>
+        // Initialize Potree viewer
         const viewer = new Potree.Viewer(document.getElementById("potree_render_area"));
         viewer.setEDLEnabled(true);
         viewer.setFOV(60);
-        viewer.setPointBudget(15_000_000);
+        viewer.setPointBudget(2_000_000);
         viewer.loadSettingsFromURL();
         viewer.setDescription("Lion model point cloud");
+
         viewer.loadGUI(() => {
             viewer.setLanguage('en');
             $("#menu_appearance").next().show();
@@ -41,32 +47,143 @@
             $("#menu_clipping").next().show();
             viewer.toggleSidebar();
         });
+
+        // Hardcoded model name
         const modelName = "myviewer1";
+
+        // Fetch the SAS URL
         fetch(`/api/getSasUrl?model=${modelName}`)
             .then(async response => {
-                if (!response.ok) throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+                if (!response.ok) {
+                    const text = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${text}`);
+                }
                 return response.json();
             })
             .then(data => {
-                if (!data.baseUrl || !data.sasToken) throw new Error("Invalid SAS data");
-                window.azureBaseUrl = data.baseUrl;
+                if (!data.url) {
+                    throw new Error("Invalid SAS data returned - missing url");
+                }
+                
+                console.log("SAS data received:", {
+                    metadataUrl: data.url,
+                    baseUrl: data.baseUrl,
+                    model: data.model
+                });
+                
+                // Store SAS info globally for URL overrides
                 window.azureSasToken = data.sasToken;
+                window.azureBaseUrl = data.baseUrl;
                 window.azureModel = data.model;
-                const metadataUrl = `${data.baseUrl}/${data.model}/metadata.json?${data.sasToken}`;
-                const octreeUrl = `${data.baseUrl}/${data.model}/octree.bin?${data.sasToken}`;
-                const hierarchyUrl = `${data.baseUrl}/${data.model}/hierarchy.bin?${data.sasToken}`;
-                Potree.loadPointCloud(metadataUrl, modelName, e => {
+                
+                // More aggressive URL override to handle Potree's path resolution
+                const originalXHROpen = XMLHttpRequest.prototype.open;
+                XMLHttpRequest.prototype.open = function(method, url, async, user, password) {
+                    console.log("Original URL request:", url);
+                    
+                    // Handle any URL that contains our storage domain or looks like a point cloud file
+                    if (url.includes('.bin') || url.includes('.las') || url.includes('.laz') || 
+                        url.includes('hierarchy') || url.includes('octree') ||
+                        (url.startsWith('http') && url.includes('blob.core.windows.net'))) {
+                        
+                        let newUrl = url;
+                        
+                        // Fix malformed URLs that contain ../
+                        if (url.includes('../')) {
+                            console.log("Fixing malformed URL with ../");
+                            // Extract the filename from the malformed path
+                            const parts = url.split('/');
+                            const filename = parts[parts.length - 1].split('?')[0]; // Remove any existing query params
+                            newUrl = `${data.baseUrl}/${data.model}/${filename}`;
+                        }
+                        // Handle relative paths
+                        else if (!url.startsWith('http')) {
+                            // Remove any leading ./ or /
+                            const cleanPath = url.replace(/^\.?\/+/, '');
+                            newUrl = `${data.baseUrl}/${data.model}/${cleanPath}`;
+                        }
+                        // Handle full URLs that might be missing SAS token
+                        else if (url.startsWith('http')) {
+                            // Remove existing query parameters and rebuild
+                            const urlParts = url.split('?')[0];
+                            newUrl = urlParts;
+                        }
+                        
+                        // Always add our SAS token
+                        if (!newUrl.includes('?')) {
+                            newUrl += '?' + data.sasToken;
+                        } else {
+                            // Remove existing query params and add only our SAS token
+                            newUrl = newUrl.split('?')[0] + '?' + data.sasToken;
+                        }
+                        
+                        console.log("Fixed URL:", newUrl);
+                        url = newUrl;
+                    }
+                    
+                    return originalXHROpen.call(this, method, url, async, user, password);
+                };
+                
+                // Also override fetch for modern Potree versions
+                const originalFetch = window.fetch;
+                window.fetch = function(url, options) {
+                    if (typeof url === 'string') {
+                        console.log("Fetch request:", url);
+                        
+                        if (url.includes('.bin') || url.includes('.las') || url.includes('.laz') || 
+                            url.includes('hierarchy') || url.includes('octree') ||
+                            (url.startsWith('http') && url.includes('blob.core.windows.net'))) {
+                            
+                            let newUrl = url;
+                            
+                            // Fix malformed URLs
+                            if (url.includes('../')) {
+                                console.log("Fixing malformed fetch URL with ../");
+                                const parts = url.split('/');
+                                const filename = parts[parts.length - 1].split('?')[0];
+                                newUrl = `${data.baseUrl}/${data.model}/${filename}`;
+                            }
+                            else if (!url.startsWith('http')) {
+                                const cleanPath = url.replace(/^\.?\/+/, '');
+                                newUrl = `${data.baseUrl}/${data.model}/${cleanPath}`;
+                            }
+                            else if (url.startsWith('http')) {
+                                newUrl = url.split('?')[0];
+                            }
+                            
+                            // Add SAS token
+                            if (!newUrl.includes('?')) {
+                                newUrl += '?' + data.sasToken;
+                            } else {
+                                newUrl = newUrl.split('?')[0] + '?' + data.sasToken;
+                            }
+                            
+                            console.log("Fixed fetch URL:", newUrl);
+                            url = newUrl;
+                        }
+                    }
+                    
+                    return originalFetch.call(this, url, options);
+                };
+                
+                console.log("Loading point cloud from metadata:", data.url);
+                
+                // Load point cloud using the metadata.json URL
+                Potree.loadPointCloud(data.url, modelName, e => {
                     console.log("Point cloud loaded successfully");
+                    
                     const scene = viewer.scene;
                     const pointcloud = e.pointcloud;
+
                     const material = pointcloud.material;
-                    material.size = 2;
-                    material.pointSizeType = Potree.PointSizeType.FIXED;
-                    material.shape = Potree.PointShape.CIRCLE;
+                    material.size = 1;
+                    material.pointSizeType = Potree.PointSizeType.ADAPTIVE;
+                    material.shape = Potree.PointShape.SQUARE;
                     material.activeAttributeName = "rgba";
+
                     scene.addPointCloud(pointcloud);
                     viewer.fitToScreen();
-                }, error => console.error("Point cloud load failed:", error));
+                });
             })
             .catch(err => {
                 console.error("Failed to fetch SAS URL or load point cloud:", err);
