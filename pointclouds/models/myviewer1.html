@@ -31,7 +31,7 @@
         const viewer = new Potree.Viewer(document.getElementById("potree_render_area"));
         viewer.setEDLEnabled(true);
         viewer.setFOV(60);
-        viewer.setPointBudget(15_000_000); // Increased for better sampling
+        viewer.setPointBudget(15_000_000);
         viewer.loadSettingsFromURL();
         viewer.setDescription("Lion model point cloud");
         viewer.loadGUI(() => {
@@ -55,36 +55,6 @@
                 const metadataUrl = `${data.baseUrl}/${data.model}/metadata.json?${data.sasToken}`;
                 const octreeUrl = `${data.baseUrl}/${data.model}/octree.bin?${data.sasToken}`;
                 const hierarchyUrl = `${data.baseUrl}/${data.model}/hierarchy.bin?${data.sasToken}`;
-                // Override Potree loader for all node requests
-                const originalLoad = Potree.PointCloudOctree.prototype.load;
-                Potree.PointCloudOctree.prototype.load = function(node) {
-                    if (node.url && node.url.includes('../')) {
-                        console.log("Original Node URL:", node.url);
-                        node.url = node.url.replace('../', `${window.azureBaseUrl}/${window.azureModel}/`);
-                        node.url += `?${window.azureSasToken}`;
-                        console.log("Corrected Node URL:", node.url);
-                    }
-                    return originalLoad.call(this, node);
-                };
-                const originalFetch = window.fetch;
-                window.fetch = async function(url, options) {
-                    if ((url.includes('.bin') || url.includes('hierarchy')) && url.includes('blob.core.windows.net')) {
-                        console.log("Original Fetch Request:", url);
-                        let newUrl = url;
-                        if (url.includes('../')) {
-                            console.log("Fixing malformed fetch URL with ../");
-                            const parts = url.split('/');
-                            const filename = parts.pop().split('?')[0];
-                            newUrl = `${window.azureBaseUrl}/${window.azureModel}/${filename}?${window.azureSasToken}`;
-                            console.log("Fixed Fetch URL:", newUrl);
-                        }
-                        return originalFetch.call(this, newUrl, options).catch(err => {
-                            console.error("Fetch failed after fix:", err);
-                            return Promise.reject(err);
-                        });
-                    }
-                    return originalFetch.call(this, url, options);
-                };
                 Potree.loadPointCloud(metadataUrl, modelName, e => {
                     console.log("Point cloud loaded successfully");
                     const scene = viewer.scene;

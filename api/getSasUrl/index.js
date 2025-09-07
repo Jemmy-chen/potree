@@ -6,7 +6,7 @@ try {
     context.log.error("Failed to load @azure/storage-blob", { message: err.message, stack: err.stack });
     context.res = { 
       status: 500,
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
       body: JSON.stringify({ error: "Module load failure", message: err.message })
     };
   };
@@ -35,7 +35,7 @@ module.exports = async function (context, req) {
     if (!accountName) {
       context.res = {
         status: 200,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
         body: JSON.stringify({ 
           debug: true,
           error: "AZURE_STORAGE_ACCOUNT missing",
@@ -48,7 +48,7 @@ module.exports = async function (context, req) {
     if (!sasToken) {
       context.res = {
         status: 200,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
         body: JSON.stringify({ 
           debug: true,
           error: "SAS_TOKEN missing",
@@ -59,7 +59,6 @@ module.exports = async function (context, req) {
       return;
     }
 
-    // Provide base URL and SAS token separately
     const baseUrl = `https://${accountName}.blob.core.windows.net/${containerName}`;
     
     context.log("URLs constructed:", {
@@ -83,7 +82,7 @@ module.exports = async function (context, req) {
 
     context.res = {
       status: 200,
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
       body: JSON.stringify(responseData)
     };
 
@@ -93,7 +92,7 @@ module.exports = async function (context, req) {
     context.log.error("=== DEBUG FUNCTION ERROR ===", err);
     context.res = {
       status: 200,
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
       body: JSON.stringify({
         debug: true,
         error: "Exception occurred",
