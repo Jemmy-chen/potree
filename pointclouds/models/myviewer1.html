@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Potree Viewer with SAS URL</title>
+  <title>Potree Viewer with SAS Rewrite</title>
   <link rel="stylesheet" href="./libs/potree/potree.css" />
   <link rel="stylesheet" href="./libs/jquery-ui/jquery-ui.min.css" />
   <link rel="stylesheet" href="./libs/openlayers3/ol.css" />
@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="./libs/jstree/themes/mixed/style.css" />
 </head>
 <body>
-  <div class="potree_container" style="position: absolute; width: 100%; height: 100%; left: 0; top: 0;">
+  <div class="potree_container" style="position:absolute; width:100%; height:100%; left:0; top:0;">
     <div id="potree_render_area" style="background-image: url('./libs/potree/resources/images/background.jpg');"></div>
     <div id="potree_sidebar_container"></div>
   </div>
@@ -36,11 +36,10 @@
       viewer.setEDLEnabled(true);
       viewer.setFOV(60);
       viewer.setPointBudget(15000000);
-      viewer.loadSettingsFromURL();
       viewer.setDescription("Azure Blob Potree Model");
 
       viewer.loadGUI(() => {
-        viewer.setLanguage('en');
+        viewer.setLanguage("en");
         $("#menu_appearance").next().show();
         $("#menu_tools").next().show();
         $("#menu_clipping").next().show();
@@ -50,19 +49,15 @@
       const modelName = "myviewer1";
 
       try {
-        // Fetch SAS URL from backend
+        // Fetch patched metadata.json from backend
         const response = await fetch(`/api/getSasUrl?model=${modelName}`);
         if (!response.ok) throw new Error(`HTTP error ${response.status}`);
-        const data = await response.json();
 
-        if (!data.url) throw new Error("Missing URL in backend response");
+        const metadata = await response.json();
 
-        const pointcloudUrl = data.url;
+        console.log("Loading point cloud with patched metadata:", metadata);
 
-        console.log("Loading point cloud from URL:", pointcloudUrl);
-
-        // Load point cloud directly with full URL (includes SAS token)
-        Potree.loadPointCloud(pointcloudUrl, modelName, e => {
+        Potree.loadPointCloud(metadata, modelName, (e) => {
           const pointcloud = e.pointcloud;
           const material = pointcloud.material;
 
@@ -75,11 +70,7 @@
           viewer.fitToScreen();
 
           console.log("✅ Point cloud loaded");
-        }, err => {
-          console.error("❌ Load failed:", err);
-          alert("Failed to load point cloud: " + err.message);
         });
-
       } catch (err) {
         console.error("⚠️ Viewer init failed:", err);
         alert("Error: " + err.message);
