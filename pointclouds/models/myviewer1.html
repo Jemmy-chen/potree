@@ -60,7 +60,7 @@
           }
 
           // Compose base URL with SAS token for the whole model folder
-          const baseSasUrl = `${data.baseUrl}/${data.model}?${data.sasToken}`;
+          const baseSasUrl = `${data.baseUrl}/${data.model}/?${data.sasToken}`;
 
           // Load point cloud (Potree will append metadata.json, octree.bin, hierarchy.bin relative to this)
           Potree.loadPointCloud(baseSasUrl, modelName, e => {
