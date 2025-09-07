@@ -31,66 +31,67 @@
   <script src="./libs/plasio/js/laslaz.js"></script>
 
   <script>
-    async function initViewer() {
-      const viewer = new Potree.Viewer(document.getElementById("potree_render_area"));
-      viewer.setEDLEnabled(true);
-      viewer.setFOV(60);
-      viewer.setPointBudget(15000000);
-      viewer.loadSettingsFromURL();
-      viewer.setDescription("Azure Blob Potree Model");
+async function initViewer() {
+  const viewer = new Potree.Viewer(document.getElementById("potree_render_area"));
+  viewer.setEDLEnabled(true);
+  viewer.setFOV(60);
+  viewer.setPointBudget(15000000);
+  viewer.loadSettingsFromURL();
+  viewer.setDescription("Azure Blob Potree Model");
 
-      viewer.loadGUI(() => {
-        viewer.setLanguage('en');
-        $("#menu_appearance").next().show();
-        $("#menu_tools").next().show();
-        $("#menu_clipping").next().show();
-        viewer.toggleSidebar();
-      });
+  viewer.loadGUI(() => {
+    viewer.setLanguage('en');
+    $("#menu_appearance").next().show();
+    $("#menu_tools").next().show();
+    $("#menu_clipping").next().show();
+    viewer.toggleSidebar();
+  });
 
-      const modelName = "myviewer1";
+  const modelName = "myviewer1";
 
-      try {
-        // 1. Get SAS info from your backend API
-        const response = await fetch(`/api/getSasUrl?model=${modelName}`);
-        if (!response.ok) throw new Error(`Failed to get SAS info (HTTP ${response.status})`);
-        const data = await response.json();
+  try {
+    // 1. Fetch SAS info from your backend
+    const response = await fetch(`/api/getSasUrl?model=${modelName}`);
+    if (!response.ok) throw new Error(`Failed to get SAS info (HTTP ${response.status})`);
+    const data = await response.json();
 
-        const baseUrl = data.baseUrl;
-        const sasToken = data.sasToken.startsWith("?") ? data.sasToken : "?" + data.sasToken;
-        const modelPath = `${baseUrl}/${modelName}`;
+    const baseUrl = data.baseUrl;
+    let sasToken = data.sasToken;
 
-        // 2. Fetch metadata.json manually with SAS token
-        const metadataResponse = await fetch(`${modelPath}/metadata.json${sasToken}`);
-        if (!metadataResponse.ok) throw new Error("Failed to fetch metadata.json");
-        const metadata = await metadataResponse.json();
-
-        // 3. Patch metadata paths so that SAS token is appended correctly for internal requests
-        metadata.octreeDir = modelPath; // base path for Potree internal fetches
-        metadata.hierarchyPath = `${modelPath}/hierarchy.bin${sasToken}`;
-        metadata.octreePath = `${modelPath}/octree.bin${sasToken}`;
-
-        // 4. Load point cloud using Potree.PointCloudOctreeGeometry (accepts metadata object)
-        const geometry = await Potree.PointCloudOctreeGeometry.load(metadata);
-        const pointcloud = new Potree.PointCloudOctree(geometry, modelName);
-
-        const material = pointcloud.material;
-        material.size = 2;
-        material.pointSizeType = Potree.PointSizeType.FIXED;
-        material.shape = Potree.PointShape.CIRCLE;
-        material.activeAttributeName = "rgba";
-
-        viewer.scene.addPointCloud(pointcloud);
-        viewer.fitToScreen();
-
-        console.log("✅ Point cloud loaded successfully");
-
-      } catch (err) {
-        console.error("❌ Error loading point cloud:", err);
-        alert("Error loading point cloud: " + err.message);
-      }
+    if (!sasToken.startsWith("?")) {
+      sasToken = "?" + sasToken;
     }
 
-    initViewer();
+    // 2. Compose full URL to the point cloud folder (with SAS token)
+    // This is the folder containing metadata.json, hierarchy.bin, octree.bin, etc.
+    const pointcloudUrl = `${baseUrl}/${modelName}/${sasToken}`;
+
+    // 3. Load point cloud using Potree.loadPointCloud() by passing the URL string
+    Potree.loadPointCloud(pointcloudUrl, modelName, e => {
+      const pointcloud = e.pointcloud;
+      const material = pointcloud.material;
+      material.size = 2;
+      material.pointSizeType = Potree.PointSizeType.FIXED;
+      material.shape = Potree.PointShape.CIRCLE;
+      material.activeAttributeName = "rgba";
+
+      viewer.scene.addPointCloud(pointcloud);
+      viewer.fitToScreen();
+
+      console.log("✅ Point cloud loaded successfully");
+    }, err => {
+      console.error("❌ Load failed:", err);
+      alert("Failed to load point cloud.");
+    });
+
+  } catch (err) {
+    console.error("❌ Viewer init failed:", err);
+    alert("Error: " + err.message);
+  }
+}
+
+initViewer();
+
   </script>
 </body>
 </html>
