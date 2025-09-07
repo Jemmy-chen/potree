@@ -35,7 +35,7 @@
       const viewer = new Potree.Viewer(document.getElementById("potree_render_area"));
       viewer.setEDLEnabled(true);
       viewer.setFOV(60);
-      viewer.setPointBudget(15_000_000);
+      viewer.setPointBudget(15000000);
       viewer.loadSettingsFromURL();
       viewer.setDescription("Azure Blob Potree Model");
 
@@ -50,46 +50,43 @@
       const modelName = "myviewer1";
 
       try {
-        // 1. Fetch SAS config from backend
+        // 1. Get SAS info from your backend API
         const response = await fetch(`/api/getSasUrl?model=${modelName}`);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        if (!response.ok) throw new Error(`Failed to get SAS info (HTTP ${response.status})`);
         const data = await response.json();
 
         const baseUrl = data.baseUrl;
-        const token = data.sasToken.startsWith("?") ? data.sasToken : "?" + data.sasToken;
+        const sasToken = data.sasToken.startsWith("?") ? data.sasToken : "?" + data.sasToken;
         const modelPath = `${baseUrl}/${modelName}`;
-        const metadataUrl = `${modelPath}/metadata.json${token}`;
 
-        // 2. Fetch metadata.json manually
-        const metadataResponse = await fetch(metadataUrl);
-        if (!metadataResponse.ok) throw new Error("Failed to load metadata.json");
+        // 2. Fetch metadata.json manually with SAS token
+        const metadataResponse = await fetch(`${modelPath}/metadata.json${sasToken}`);
+        if (!metadataResponse.ok) throw new Error("Failed to fetch metadata.json");
         const metadata = await metadataResponse.json();
 
-        // 3. Mutate metadata paths to full URLs with token
-        metadata.octreeDir = modelPath; // Potree uses this base for internal path joins
-        metadata.hierarchyPath = `${modelPath}/hierarchy.bin${token}`;
-        metadata.octreePath = `${modelPath}/octree.bin${token}`;
+        // 3. Patch metadata paths so that SAS token is appended correctly for internal requests
+        metadata.octreeDir = modelPath; // base path for Potree internal fetches
+        metadata.hierarchyPath = `${modelPath}/hierarchy.bin${sasToken}`;
+        metadata.octreePath = `${modelPath}/octree.bin${sasToken}`;
 
-        // 4. Load point cloud from modified metadata object
-        Potree.loadPointCloud(metadata, modelName, e => {
-          const pointcloud = e.pointcloud;
-          const material = pointcloud.material;
-          material.size = 2;
-          material.pointSizeType = Potree.PointSizeType.FIXED;
-          material.shape = Potree.PointShape.CIRCLE;
-          material.activeAttributeName = "rgba";
+        // 4. Load point cloud using Potree.PointCloudOctreeGeometry (accepts metadata object)
+        const geometry = await Potree.PointCloudOctreeGeometry.load(metadata);
+        const pointcloud = new Potree.PointCloudOctree(geometry, modelName);
 
-          viewer.scene.addPointCloud(pointcloud);
-          viewer.fitToScreen();
-          console.log("✅ Point cloud loaded");
-        }, err => {
-          console.error("❌ Load failed:", err);
-          alert("Failed to load point cloud.");
-        });
+        const material = pointcloud.material;
+        material.size = 2;
+        material.pointSizeType = Potree.PointSizeType.FIXED;
+        material.shape = Potree.PointShape.CIRCLE;
+        material.activeAttributeName = "rgba";
+
+        viewer.scene.addPointCloud(pointcloud);
+        viewer.fitToScreen();
+
+        console.log("✅ Point cloud loaded successfully");
 
       } catch (err) {
-        console.error("⚠️ Viewer init failed:", err);
-        alert("Error: " + err.message);
+        console.error("❌ Error loading point cloud:", err);
+        alert("Error loading point cloud: " + err.message);
       }
     }
 
