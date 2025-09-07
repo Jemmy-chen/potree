@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Potree Viewer</title>
-  <link rel="stylesheet" href="./libs/potree/potree.css">
-  <link rel="stylesheet" href="./libs/jquery-ui/jquery-ui.min.css">
-  <link rel="stylesheet" href="./libs/openlayers3/ol.css">
-  <link rel="stylesheet" href="./libs/spectrum/spectrum.css">
-  <link rel="stylesheet" href="./libs/jstree/themes/mixed/style.css">
+  <link rel="stylesheet" href="./libs/potree/potree.css" />
+  <link rel="stylesheet" href="./libs/jquery-ui/jquery-ui.min.css" />
+  <link rel="stylesheet" href="./libs/openlayers3/ol.css" />
+  <link rel="stylesheet" href="./libs/spectrum/spectrum.css" />
+  <link rel="stylesheet" href="./libs/jstree/themes/mixed/style.css" />
 </head>
 <body>
   <div class="potree_container" style="position: absolute; width: 100%; height: 100%; left: 0; top: 0;">
@@ -50,30 +50,30 @@
       const modelName = "myviewer1";
 
       try {
-        // 1. Fetch SAS info from SWA API
-        const sasResponse = await fetch(`https://black-stone-00d678100.1.azurestaticapps.net/api/getSasUrl?model=${modelName}`);
-        if (!sasResponse.ok) throw new Error("Failed to fetch SAS URL");
-        const sasData = await sasResponse.json();
+        // 1. Fetch SAS config from backend
+        const response = await fetch(`/api/getSasUrl?model=${modelName}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
 
-        const baseUrl = `${sasData.baseUrl}/${sasData.model}`;
-        const safeToken = sasData.sasToken.startsWith("?") ? sasData.sasToken : "?" + sasData.sasToken;
+        const baseUrl = data.baseUrl;
+        const token = data.sasToken.startsWith("?") ? data.sasToken : "?" + data.sasToken;
+        const modelPath = `${baseUrl}/${modelName}`;
+        const metadataUrl = `${modelPath}/metadata.json${token}`;
 
-        // 2. Fetch metadata.json from blob
-        const metaResponse = await fetch(`${baseUrl}/metadata.json${safeToken}`);
-        if (!metaResponse.ok) throw new Error("Failed to fetch metadata.json");
-        const metadata = await metaResponse.json();
+        // 2. Fetch metadata.json manually
+        const metadataResponse = await fetch(metadataUrl);
+        if (!metadataResponse.ok) throw new Error("Failed to load metadata.json");
+        const metadata = await metadataResponse.json();
 
-        // 3. Patch hierarchy & octree paths with absolute SAS URLs
-        metadata.octreeDir = baseUrl;
-        metadata.hierarchyPath = `${baseUrl}/hierarchy.bin${safeToken}`;
-        metadata.octreePath = `${baseUrl}/octree.bin${safeToken}`;
+        // 3. Mutate metadata paths to full URLs with token
+        metadata.octreeDir = modelPath; // Potree uses this base for internal path joins
+        metadata.hierarchyPath = `${modelPath}/hierarchy.bin${token}`;
+        metadata.octreePath = `${modelPath}/octree.bin${token}`;
 
-        // 4. Load point cloud from patched metadata
+        // 4. Load point cloud from modified metadata object
         Potree.loadPointCloud(metadata, modelName, e => {
-          console.log("✅ Point cloud loaded successfully");
           const pointcloud = e.pointcloud;
           const material = pointcloud.material;
-
           material.size = 2;
           material.pointSizeType = Potree.PointSizeType.FIXED;
           material.shape = Potree.PointShape.CIRCLE;
@@ -81,11 +81,15 @@
 
           viewer.scene.addPointCloud(pointcloud);
           viewer.fitToScreen();
-        }, error => console.error("❌ Point cloud load failed:", error));
+          console.log("✅ Point cloud loaded");
+        }, err => {
+          console.error("❌ Load failed:", err);
+          alert("Failed to load point cloud.");
+        });
 
       } catch (err) {
-        console.error("⚠️ Error initializing Potree:", err);
-        alert("Error loading point cloud: " + err.message);
+        console.error("⚠️ Viewer init failed:", err);
+        alert("Error: " + err.message);
       }
     }
 
